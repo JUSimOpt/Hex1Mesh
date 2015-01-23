@@ -43,7 +43,11 @@ X = [mesh1.xnod,mesh1.ynod,mesh1.znod];
 
 T = mesh1.copy();
 % set(hv.EleText,'Visible','off')
-nele = [3,2,4,1]
+nele = 'all'
+
+if strcmpi(nele,'all')
+    nele = 1:size(T.Connectivity,1);
+end
 
 %% Refine Hex Mesh Locally
 % nodes = T.Connectivity;
@@ -60,7 +64,7 @@ X = T.X;
 % Loop over all elements that are about to be refined
 % For every element we will get 8 subelements
 for iel = nele
-    iv = T.Connectivity(iel,:) % local node numbers
+    iv = T.Connectivity(iel,:); % local node numbers
     xc = xnod(iv); % local coordinates
     yc = ynod(iv);
     zc = znod(iv);
@@ -105,6 +109,8 @@ for iel = nele
     J = [1,3,7,9,19,21,25,27];
     INDS = zeros(27,1); %Indices
     INDS(J) = iv(I); % Existing Corner nodes
+    
+
     NewNodes = (nmax+1:nmax+19)'; %Temporarly create
     
     %% Check if neighbors already have created same nodes
@@ -112,60 +118,48 @@ for iel = nele
     % contain points that already exist
     X2 = [X;XN];
     % Those extra added points are found and stored as nodenumbers
-    duplicateNodes = NewNodes( ismember(X2(NewNodes,:),X,'rows') )
+    duplicateNodes = NewNodes( ismember(X2(NewNodes,:),X,'rows') );
     
     % The duplicates that we want to keep
-    DupNodes = find(ismember(X,XN,'rows'))
+%     DupNodes = find(ismember(X,XN,'rows'));
     
-    if iel == 1
-        pause
+    % First column stores indices to INDS second column stores node indices
+    K = zeros(19,2);
+    % We want to populate the noncorner nodes
+    K(1:19,1) = [2,4,5,6,8,10,11,12,13,14,15,16,17,18,20,22,23,24,26]';
+    % Loop over all 19 non corner nodes and look if the new coordinate
+    % already exists in the domain. If it exists, add the index of the
+    % existing node to the list, if it does not exist, increment the
+    % nodenumber and add it to the list.
+    for i = 1:19
+        ind = find(ismember(X,XN(i,:),'rows'),1);
+        if ~isempty(ind)
+            K(i,2)=ind;
+        else
+            K(i,2)=nmax+1;
+            nmax=nmax+1;
+        end
     end
-    
-    % These are all the nodes we want to keep, including the mother element
-    % nodes
-    PrescNodes = [iv(I)'; DupNodes];
-    PrescNodes = iv(I)'
-    % We find out the new number of nodes to add
-    nNewNodes = 27-length([iv(I)'; DupNodes]);
-    % List of new nodes
-    NewUniqueNodes = (nmax+1:nmax+nNewNodes)';
-    % Update the max node number
-    nmax = nmax+nNewNodes;
-    % Update list of locally refined nodes with the new nodes, including the
-    % duplicate ones
-    INDS(setdiff(1:27,J)) = NewNodes;
-    % The above step is done so that we can find out the indices of the
-    % duplicate nodes
-    DupNodeInds = find(ismember(INDS,duplicateNodes));
-    % The prescribed node inds, includes the mother element nodes
-    presc = [J';DupNodeInds];
-    % Now we reset INDS and updated it with the New Unique Node numbers
-    INDS = zeros(27,1); %Indices
-    % We keep the corner nodes and the neighbor nodes
-    INDS(presc) = PrescNodes
-    
-    % And add the new Unique Nodes in the rest of the positions
-    free = setdiff(1:27,presc)';
-    INDS(free) = NewUniqueNodes;
+
+    % Fill the local INDS list
+    INDS(K(:,1)) = K(:,2);
     
     % The new global nodes in a connectivity matrix, rady to be appended to
     % the rest of the Connectivity matrix
     C2 = INDS(locnodes);
+    
     % Delete the duplicate points from the new Coordinate matrix.
     X2(duplicateNodes,:) = [];
     % Replace coord matrix
     X = X2;
     
-    
-    
     % Add new element matrix to the rest
     nodes = [nodes;C2];
     
     
-    
     %% Viz mesh
     
-    VizMeshTemp(T,nodes,X)
+%     VizMeshTemp(T,nodes,X)
     
     %% Hanging nodes
     EdgeNodes = find(ismember(X,XN(XNeind,:),'rows'));
@@ -182,7 +176,7 @@ for iel = nele
 end
 % Remove the mother element, since it has been replaced by 8 smaller
 % elements
-% nodes(nele,:) = [];
+nodes(nele,:) = [];
 
     %% HangNodes handling
 HangNodes = [T.Element.HangNodes];
@@ -196,64 +190,64 @@ T.HangNodes = HangNodes;
 % Return HangNodes, HangNodesM
 
 	%% Update Face and edge matrices
-% Q = zeros(T.nele*6,4); %Stores faces
-% edges1 = zeros(T.nele*12,2); %stores edges
-% 
-% T.Element(T.nele).faces = []; %initialize T.Element.faces
-% T.Element(T.nele).edges = []; %initialize T.Element.edges
-% 
-% T.nele = size(nodes,1);
-% lof = 1; loe = 1;
-% for iel = 1:T.nele
-%     upf = lof+5;
-%     upe = loe+11;
-%     %Faces
-%     iface = [nodes(iel,[1,2,3,4]);...
-%         nodes(iel,[5,6,7,8]);...
-%         nodes(iel,[1,5,8,2]);...
-%         nodes(iel,[4,6,5,1]);...
-%         nodes(iel,[3,7,6,4]);...
-%         nodes(iel,[2,8,7,3])];
-%     Q(lof:upf,:) = iface;
-%     T.Element(iel).faces = iface;
-%     
-%     %edges
-%     n = nodes(iel,:);
-%     I = [1,2,4,3,5,8,6,7]; %Numbering order (indices)
-%     iedges = [n(I(1)),n(I(2));...
-%         n(I(2)),n(I(4));...
-%         n(I(4)),n(I(3));...
-%         n(I(3)),n(I(1));...
-%         n(I(1)),n(I(5));...
-%         n(I(3)),n(I(7));...
-%         n(I(4)),n(I(8));...
-%         n(I(2)),n(I(6));...
-%         n(I(6)),n(I(5));...
-%         n(I(5)),n(I(7));...
-%         n(I(7)),n(I(8));...
-%         n(I(8)),n(I(6))];
-%     edges1(loe:upe,:) = iedges;
-%     T.Element(iel).edges = iedges;
-%     %counter
-%     lof = upf +1;
-%     loe = upe +1;
-% end
-% T.Connectivity = nodes;
-% T.X = X;
-% T.xnod = X(:,1);
-% T.ynod = X(:,2);
-% T.znod = X(:,3);
-% 
-% T.Faces = Q;
-% T.nnod = length(T.xnod);
-% T.edges = edges1;
+Q = zeros(T.nele*6,4); %Stores faces
+edges1 = zeros(T.nele*12,2); %stores edges
+
+T.Element(T.nele).faces = []; %initialize T.Element.faces
+T.Element(T.nele).edges = []; %initialize T.Element.edges
+
+T.nele = size(nodes,1);
+lof = 1; loe = 1;
+for iel = 1:T.nele
+    upf = lof+5;
+    upe = loe+11;
+    %Faces
+    iface = [nodes(iel,[1,2,3,4]);...
+        nodes(iel,[5,6,7,8]);...
+        nodes(iel,[1,5,8,2]);...
+        nodes(iel,[4,6,5,1]);...
+        nodes(iel,[3,7,6,4]);...
+        nodes(iel,[2,8,7,3])];
+    Q(lof:upf,:) = iface;
+    T.Element(iel).faces = iface;
+    
+    %edges
+    n = nodes(iel,:);
+    I = [1,2,4,3,5,8,6,7]; %Numbering order (indices)
+    iedges = [n(I(1)),n(I(2));...
+        n(I(2)),n(I(4));...
+        n(I(4)),n(I(3));...
+        n(I(3)),n(I(1));...
+        n(I(1)),n(I(5));...
+        n(I(3)),n(I(7));...
+        n(I(4)),n(I(8));...
+        n(I(2)),n(I(6));...
+        n(I(6)),n(I(5));...
+        n(I(5)),n(I(7));...
+        n(I(7)),n(I(8));...
+        n(I(8)),n(I(6))];
+    edges1(loe:upe,:) = iedges;
+    T.Element(iel).edges = iedges;
+    %counter
+    lof = upf +1;
+    loe = upe +1;
+end
+T.Connectivity = nodes;
+T.X = X;
+T.xnod = X(:,1);
+T.ynod = X(:,2);
+T.znod = X(:,3);
+
+T.Faces = Q;
+T.nnod = length(T.xnod);
+T.edges = edges1;
 
 
 %% Vix mesh
 % nodes
 % size(X)
 % max(nodes(:))
-% hv2 = T.vizMesh();
+hv2 = T.vizMesh();
 % for i = 1:size(nodes,1)
 %     iv = nodes(i,:);
 %     xc = X(nodes(i,:),1);

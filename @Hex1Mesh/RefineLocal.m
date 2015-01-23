@@ -1,27 +1,28 @@
-function [HangNodes, HangNodesM, T] = Hex1Mesh_RefineLocal(T, ele)
+function [HangNodes, HangNodesM] = RefineLocal(T, ele)
 
+if strcmpi(ele,'all')
+    ele = 1:size(T.Connectivity,1);
+end
 
-
-nodes = T.Connectivity;
-X = T.X;
+%% Refine Hex Mesh Locally
+% nodes = T.Connectivity;
+% X = T.X;
 xnod = T.xnod;
 ynod = T.ynod;
 znod = T.znod;
-
 % Number of nodes, keeps track of the latest node number
 nmax = length(xnod);
 
-if strcmpi(ele,'All')
-    ele = 1:size(nodes,1)
-end
+nodes = T.Connectivity;
+X = T.X;
 
 % Loop over all elements that are about to be refined
 % For every element we will get 8 subelements
 for iel = ele
-    iv = nodes(iel,:); % local node numbers
-    xc = T.xnod(iv); % local coordinates
-    yc = T.ynod(iv);
-    zc = T.znod(iv);
+    iv = T.Connectivity(iel,:); % local node numbers
+    xc = xnod(iv); % local coordinates
+    yc = ynod(iv);
+    zc = znod(iv);
     
     xm = mean(xc);ym = mean(yc);zm = mean(zc); %mid points of element
     
@@ -45,24 +46,26 @@ for iel = ele
     % Notice that we're creating 19 points regardless if these points exists
     % in neighboring elements. We'll deal with that later.
     XN = zeros(19,3);   % 19 New points
-    XN(XNeind,:) = (X(edges(eind,1),:)+X(edges(eind,2),:))/2;
+    XN(XNeind,:) = (T.X(edges(eind,1),:)+T.X(edges(eind,2),:))/2;
     XN(XNMind,:) = [xm,ym,zm];
-    XN(XNfind,:)=(X(faces(faceind,1),:)+X(faces(faceind,2),:)+X(faces(faceind,3),:)+X(faces(faceind,4),:))/4;
+    XN(XNfind,:)=(T.X(faces(faceind,1),:)+T.X(faces(faceind,2),:)+T.X(faces(faceind,3),:)+T.X(faces(faceind,4),:))/4;
     
     %Local node numbering same as for mother elements
     locnodes = [1  2  5  4  10 13 14 11;...
-        2  3  6  5  11 14 15 12;...
-        4  5  8  7  13 16 17 14;...
-        5  6  9  8  14 17 18 15;...
-        10 11 14 13 19 22 23 20;...
-        11 12 15 14 20 23 24 21;...
-        13 14 17 16 22 25 26 23;...
-        14 15 18 17 23 26 27 24];
+                2  3  6  5  11 14 15 12;...
+                4  5  8  7  13 16 17 14;...
+                5  6  9  8  14 17 18 15;...
+                10 11 14 13 19 22 23 20;...
+                11 12 15 14 20 23 24 21;...
+                13 14 17 16 22 25 26 23;...
+                14 15 18 17 23 26 27 24];
     %% Newinds
     I = [1,2,4,3,5,8,6,7];
     J = [1,3,7,9,19,21,25,27];
     INDS = zeros(27,1); %Indices
-    INDS(J) = iv(I); % Exiosting Corner nodes
+    INDS(J) = iv(I); % Existing Corner nodes
+    
+    
     NewNodes = (nmax+1:nmax+19)'; %Temporarly create
     
     %% Check if neighbors already have created same nodes
@@ -71,59 +74,47 @@ for iel = ele
     X2 = [X;XN];
     % Those extra added points are found and stored as nodenumbers
     duplicateNodes = NewNodes( ismember(X2(NewNodes,:),X,'rows') );
+    
     % The duplicates that we want to keep
-    DupNodes = find(ismember(X,XN,'rows'));
-    % These are all the nodes we want to keep, including the mother element
-    % nodes
-    PrescNodes = [iv(I)'; DupNodes];
-    % We find out the new number of nodes to add
-    nNewNodes = 27-length([iv(I)'; DupNodes]);
-    % List of new nodes
-    NewUniqueNodes = (nmax+1:nmax+nNewNodes)';
-    % Update the max node number
-    nmax = nmax+nNewNodes;
-    % Update list of locally refined nodes with the new nodes, including the
-    % duplicate ones
-    INDS(setdiff(1:27,J)) = NewNodes;
-    % The above step is done so that we can find out the indices of the
-    % duplicate nodes
-    DupNodeInds = find(ismember(INDS,duplicateNodes));
-    % The prescribed node inds, includes the mother element nodes
-    presc = [J';DupNodeInds];
-    % Now we reset INDS and updated it with the New Unique Node numbers
-    INDS = zeros(27,1); %Indices
-    % We keep the corner nodes and the neighbor nodes
-    INDS(presc) = [iv(I)'; DupNodes];
-    % And add the new Unique Nodes in the rest of the positions
-    free = setdiff(1:27,presc)';
-    INDS(free) = NewUniqueNodes;
+    %     DupNodes = find(ismember(X,XN,'rows'));
+    
+    % First column stores indices to INDS second column stores node indices
+    K = zeros(19,2);
+    % We want to populate the noncorner nodes
+    K(1:19,1) = [2,4,5,6,8,10,11,12,13,14,15,16,17,18,20,22,23,24,26]';
+    % Loop over all 19 non corner nodes and look if the new coordinate
+    % already exists in the domain. If it exists, add the index of the
+    % existing node to the list, if it does not exist, increment the
+    % nodenumber and add it to the list.
+    for i = 1:19
+        ind = find(ismember(X,XN(i,:),'rows'),1);
+        if ~isempty(ind)
+            K(i,2)=ind;
+        else
+            K(i,2)=nmax+1;
+            nmax=nmax+1;
+        end
+    end
+    
+    % Fill the local INDS list
+    INDS(K(:,1)) = K(:,2);
     
     % The new global nodes in a connectivity matrix, rady to be appended to
     % the rest of the Connectivity matrix
     C2 = INDS(locnodes);
+    
     % Delete the duplicate points from the new Coordinate matrix.
     X2(duplicateNodes,:) = [];
     % Replace coord matrix
     X = X2;
-    
     
     % Add new element matrix to the rest
     nodes = [nodes;C2];
     
     
     %% Viz mesh
-%         hv2 = T.vizMesh();
-%         for i = 1:size(nodes,1)
-%             iv = nodes(i,:);
-%             xc = X(nodes(i,:),1);
-%             yc = X(nodes(i,:),2);
-%             zc = X(nodes(i,:),3);
-%     
-%             for j=1:8
-%                 text(xc(j),yc(j),zc(j),num2str(iv(j)),'BackgroundColor','w')
-%             end
-%         end
     
+    %     VizMeshTemp(T,nodes,X)
     
     %% Hanging nodes
     EdgeNodes = find(ismember(X,XN(XNeind,:),'rows'));
@@ -207,6 +198,5 @@ T.nnod = length(T.xnod);
 T.edges = edges1;
 
 
+
 end
-
-

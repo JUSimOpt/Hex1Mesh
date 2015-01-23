@@ -424,9 +424,7 @@ classdef Hex1Mesh < matlab.mixin.Copyable
             V = 1/6*(det([v11',v12',v13'])+det([v21',v22',v23'])+det([v31',v32',v33']));
         end
         
-        function RefineLocal(T, ele)
-            
-        end
+        
         
     end
     

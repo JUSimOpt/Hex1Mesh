@@ -32,27 +32,18 @@ toc
 hv = mesh1.vizMesh('ElementNumbers','NodeNumbers');
 
 
-mesh1.mesh
+
 
 nodes = mesh1.Connectivity;
 xnod = mesh1.xnod; ynod = mesh1.ynod; znod = mesh1.znod;
 X= [xnod,ynod,znod];
-mh = mesh1.mesh
+Eh = mesh1.Element
 
 tic
 N1 = mesh1.Neighbors('Structured');
 toc
-tic
-N2 = mesh1.Neighbors('Naive');
-toc
 
-X = [mesh1.xnod,mesh1.ynod,mesh1.znod];
-nodes = mesh1.Connectivity;
 
-%%
-tic
-neighs = ComputeHexNeighborsNaive(X,nodes);
-toc
-%%
-
+mesh1.RefineLocal('all')
+hv = mesh1.vizMesh('ElementNumbers','NodeNumbers');
 
