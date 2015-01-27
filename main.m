@@ -9,9 +9,9 @@ y0 = 0;
 y1 = 1;
 z0 = 0;
 z1 = 1;
-nxe = 2;
-nye = 2;
-nze = 2;
+nxe = 1;
+nye = 1;
+nze = 1;
 
 disp('creating mesh...')
 tic
