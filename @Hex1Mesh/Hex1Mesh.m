@@ -22,15 +22,18 @@ classdef Hex1Mesh < matlab.mixin.Copyable
     properties
         Connectivity
         Faces
-        xnod
-        ynod
-        znod
+        XC
+        YC
+        ZC
         nnod
         nele
         edges
         Neighs
         Element
         HangNodes
+        Surface
+        SurfacePoints
+        SurfaceInfo
     end
     
     properties (Hidden)
@@ -109,7 +112,7 @@ classdef Hex1Mesh < matlab.mixin.Copyable
             
             
             T.Connectivity = nodes;
-            T.xnod = T.X(:,1); T.ynod = T.X(:,2); T.znod = T.X(:,3);
+            T.XC = T.X(:,1); T.YC = T.X(:,2); T.ZC = T.X(:,3);
             
             Q = zeros(T.nele*6,4);
             edges1 = zeros(T.nele*12,2);
@@ -160,7 +163,7 @@ classdef Hex1Mesh < matlab.mixin.Copyable
             
             T.Faces = Q;
             
-            T.nnod = length(T.xnod);
+            T.nnod = length(T.XC);
             T.edges = edges1;
             
             T.HangNodes = [];
@@ -172,7 +175,7 @@ classdef Hex1Mesh < matlab.mixin.Copyable
             if nargin > 1
                 searchmethod = varargin{1};
             else
-                searchmethod = 'Structured'
+                searchmethod = 'Structured';
             end
             
             switch searchmethod
@@ -366,7 +369,7 @@ classdef Hex1Mesh < matlab.mixin.Copyable
             ele = ele(:);
             fele = [6*ele-5;6*ele-4;6*ele-3;6*ele-2;6*ele-1;6*ele-0;];
             
-            h.patch = patch(T.xnod(T.Faces(fele(:),:)'),T.ynod(T.Faces(fele(:),:)'),T.znod(T.Faces(fele(:),:)'),'w','FaceColor','none');
+            h.patch = patch(T.XC(T.Faces(fele(:),:)'),T.YC(T.Faces(fele(:),:)'),T.ZC(T.Faces(fele(:),:)'),'w','FaceColor','none');
             xlabel('X'); ylabel('Y'); zlabel('Z')
             axis equal tight
             set(h.fig,'name','Hex1Mesh')
@@ -381,7 +384,7 @@ classdef Hex1Mesh < matlab.mixin.Copyable
 %                 unique(T.Connectivity(:),'stable')'
 %                 1:T.nnod
                 for i = 1:T.nnod
-                    h.NodeText = [h.NodeText; text(T.xnod(i),T.ynod(i),T.znod(i),num2str(i),'BackgroundColor','w') ];
+                    h.NodeText = [h.NodeText; text(T.XC(i),T.YC(i),T.ZC(i),num2str(i),'BackgroundColor','w') ];
                 end
             end
             
@@ -393,9 +396,9 @@ classdef Hex1Mesh < matlab.mixin.Copyable
                 
                 h.EleText = [];
                 for i = sort(ele)'
-                    xm = mean(T.xnod(T.Connectivity(i,:)));
-                    ym = mean(T.ynod(T.Connectivity(i,:)));
-                    zm = mean(T.znod(T.Connectivity(i,:)));
+                    xm = mean(T.XC(T.Connectivity(i,:)));
+                    ym = mean(T.YC(T.Connectivity(i,:)));
+                    zm = mean(T.ZC(T.Connectivity(i,:)));
                     h.EleText = [h.EleText; text(xm,ym,zm,num2str(i),'BackgroundColor','y')];
                 end
                 
