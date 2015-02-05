@@ -9,22 +9,22 @@ y0 = 0;
 y1 = 1;
 z0 = 0;
 z1 = 1;
-ne = 10;
+ne = 50;
 nxe = ne;nye = ne;nze = ne;
 
 disp('creating mesh...')
 tic
-mesh1 = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
+H = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
 toc
 
-% hv = mesh1.vizMesh('ElementNumbers','NodeNumbers');
+% hv = H.vizMesh('ElementNumbers','NodeNumbers');
 
-N1 = mesh1.Neighbors('Structured');
+N1 = H.Neighbors('Structured');
 
 
-xnod = mesh1.XC;
-ynod = mesh1.YC;
-znod = mesh1.ZC;
+xnod = H.XC;
+ynod = H.YC;
+znod = H.ZC;
 %% Surface function
 % Create the surface function
 R = 0.89;
@@ -38,9 +38,35 @@ phi = surfaceFunction(xnod, ynod, znod);
 
 %% Surface
 tic
-[surfX, surfh] = mesh1.CutP1(phi);
+[surfX, surfh] = H.CutP1(phi);
+
+ntri = length(surfX)/3
+
 CutP1Time = toc
 
-mesh1.vizP1Surf()
+H.vizP1Surf();
+
 
 %% Triangulation
+tic
+[tri,surfX] = H.TriangulateP1;
+TriangulateP1Time = toc
+h2 = H.vizP1Surf();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

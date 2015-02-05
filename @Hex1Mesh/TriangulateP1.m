@@ -1,70 +1,26 @@
-clear
-close all
-clc
+function [tri,surfX,T] = TriangulateP1(T)
+%TRIANGULATEP1 Creates a triangulation from a set of P1 triangles
+%   Triangulates the P1 Surface triangle set surfX
+%   
+%   [tri,X] = TriangulateP1()
+%   tri is the triangulation matrix m-by-3
+%   X is the set of triangle coordinates same as (surfX)
+%   Usage:
+%   T.TriangulateP1( ... )
+%   or
+%   TriangulateP1(T, ... )
+%   T is the Hex1Mesh class
 
+surfX = T.SurfaceP1Points;
+surfh = T.SurfaceP1;
 
-x0 = 0;
-x1 = 1;
-y0 = 0;
-y1 = 1;
-z0 = 0;
-z1 = 1;
-ne = 30;
-nxe = ne;nye = ne;nze = ne;
-
-disp('creating mesh...')
-tic
-mesh1 = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
-toc
-
-% hv = mesh1.vizMesh('ElementNumbers','NodeNumbers');
-
-N1 = mesh1.Neighbors('Structured');
-
-
-xnod = mesh1.XC;
-ynod = mesh1.YC;
-znod = mesh1.ZC;
-%% Surface function
-% Create the surface function
-R = 0.89;
-% surfaceFunction = @(x,y) ((x - x0).^2+(y - y0).^2).^.5-R;
-% xc = mean([x0,x1]); yc = mean([y0,y1]); zc = mean([z0,z1]);
-xc = 0; yc = 0; zc = 0;
-surfaceFunction = @(x,y,z) ((x-xc).^2+(z - zc).^2+(y - yc).^2).^.5-R;
-
-phi = surfaceFunction(xnod, ynod, znod);
-
-
-%% Surface
-tic
-[surfX, surfh, ExcessiveCurvatureInds] = mesh1.CutP1(phi);
-CutP1Time = toc
-h = mesh1.vizMesh([ExcessiveCurvatureInds.iel],78);
-h.patch.EdgeColor = [0,0,1];
-h.patch.FaceColor = [1,1,1];
-% h.patch.FaceAlpha = 0.7;
-mesh1.vizP1Surf()
-
-%% Triangulation
-XT = surfX;
-isequalPoint = @(a,b) (sum(isequalAbs(a, b))==3);
-%Use neighbor information to triangulate!
-nTri = size(surfX,1)/3
-tri = zeros(nTri,3);
-% xfigure(1);
-xfigure(1);
-Q = zeros(nTri,1);
-D(nTri).CommonNodes = 0;
 AllHexEle = [surfh.iel]';
-surfEle = mesh1.SurfaceInfo.CutElements;
+surfEle = T.SurfaceP1Info.CutElements;
+N1 = T.Neighs;
 
+nTri = size(surfX,1)/3;
 tri = zeros(nTri, 3);
 itri = 1;
-xfigure; axis equal; hold on;
-tic
-tismember = [];
-talternative = [];
 for iP = 1:3:size(surfX,1)
 
     iel = surfh(itri).iel; % Mother element
@@ -105,31 +61,15 @@ for iP = 1:3:size(surfX,1)
         %Get the current element neighbors and their neighbors to make sure
         %to capture all the neighbor nodes.
         neighHex = setdiff(unique([N1(N1(iel,N1(iel,:)>0),:);N1(iel,:)]),[0]);
-%         t2=tic;
+
         neighHex = surfEle(ismember(surfEle,neighHex));    
-%         tismember = [tismember;toc(t2)];
-% %         bsxfun(@eq,surfEle,neighHex)
-% %         length(ismember(surfEle,neighHex))
-% %         length(sum(cell2mat(arrayfun(@(ind) surfEle == neighHex(ind), [1:length(neighHex)],'un',0)),2))
-% %         isequal(ismember(surfEle,neighHex),sum(cell2mat(arrayfun(@(ind) surfEle == neighHex(ind), [1:length(neighHex)],'un',0)),2))
-%         t1=tic;
-%         neighHex= surfEle(logical(sum(cell2mat(arrayfun(@(ind) surfEle == neighHex(ind), [1:length(neighHex)],'un',0)),2)));
-%         talternative = [talternative;toc(t1)];
+
         
         
         neighTri = find(ismember(AllHexEle,neighHex));
         neighPoints = sort([neighTri*3-2;neighTri*3-1;neighTri*3-0]);
         
-%         mesh1.vizMesh(neighHex,3)
-%         xx = reshape(surfX(neighPoints,1),3,[]);
-%         yy = reshape(surfX(neighPoints,2),3,[]);
-%         zz = reshape(surfX(neighPoints,3),3,[]);
-%         patch(xx,yy,zz,'b')
-        
-%         xfigure(2)
-        neighSpaceSize = length(neighPoints)-1;
-        
-        
+%         neighSpaceSize = length(neighPoints)-1;
         
         % iP is the first of the three points in the current set of
         % triangle points.
@@ -158,24 +98,10 @@ for iP = 1:3:size(surfX,1)
             % later the neighborhgood is pretty mush constant where as the
             % points found so far would only increase.
             
-%             if neighSpaceSize < iP+1
-% %                 disp('neighborhood space')
-% %                 neighPoints
-%             else
-% %                 disp('default space')
-% %                 [1:iPnt-1]'
-%             end
             PrevPoints = [1:iPnt-1]';
             SearchInds = PrevPoints(ismember(PrevPoints,neighPoints));
             
             searchSpace = surfX(SearchInds,:);
-%             if neighSpaceSize < iP+1
-%                 neighborHood = setdiff(neighPoints,iPnt)
-%                 searchSpace = surfX(setdiff(neighPoints,iPnt),:);
-%             else
-% %                 [1:iPnt-1]'
-%                 searchSpace = surfX(1:iPnt-1,:); 
-%             end
             
             % Chose a point in the current set of trinagle points to measure the distance from
             Xp = surfX(iPnt,:);
@@ -209,12 +135,9 @@ for iP = 1:3:size(surfX,1)
             end
         end
         xe = surfX(tri(itri,:),:);
-%         patch(surfX(tri(itri,:),1),surfX(tri(itri,:),2),surfX(tri(itri,:),3),'r')
-        
-        %temp
+
         n = cross( xe(2,:)-xe(1,:) , xe(3,:)-xe(1,:) );
         n = n/norm(n);
-%         quiver3(mean(xe(:,1)),mean(xe(:,2)),mean(xe(:,3)),n(1),n(2),n(3),0.1,'color','k')
         
         surfh(itri).triS = tri(itri,:);
         surfh(itri).faceNormal = n;
@@ -226,25 +149,6 @@ for iP = 1:3:size(surfX,1)
     end
     
 end
-tTriangulation = toc
 
-%% Viz
-xfigure(78); axis equal; hold on;
-FV.Vertices = surfX;
-FV.Faces = tri;
-% shading interp
-light
-hp = patch(FV,'FaceColor','c','FaceLighting','gouraud');
-view(136,16)
-% hp.EdgeColor = 'none'
-
-
-
-
-
-
-
-
-
-
-
+T.SurfaceP1Triangulation = tri;
+T.SurfaceP1 = surfh;

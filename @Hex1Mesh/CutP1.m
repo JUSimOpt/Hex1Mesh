@@ -1,4 +1,4 @@
-function [surfX, surfh] = CutP1(T, phi)
+function [surfX, surfh, ExcessiveCurvatureInds] = CutP1(T, phi)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -22,6 +22,9 @@ nsurfEle = length(SurfEle);
 surfX = ones(nsurfEle*2,3)*nan;
 surfh(nsurfEle*2).iel = [];
 nTriEle = 1;% number of triangles found
+
+ExcessiveCurvatureInds = [];
+ECIC = 0;
 
 for iel = SurfEle'
     %% Compute cut points
@@ -120,30 +123,9 @@ for iel = SurfEle'
         %         quiver3(mean(Xe(:,1)),mean(Xe(:,2)),mean(Xe(:,3)),normal(1),normal(2),normal(3),0.1,'Color','k')
         
         % Rotate the polygon down to the x-y plane
-        origin = Xe(1,:);
-        localz = cross(Xe(2,:)-origin, Xe(3,:)-origin);
-        unitz = localz/norm(localz,2);
-        %calculate local x vector in plane
-        localx = Xe(2,:)-origin;
-        unitx = localx/norm(localx,2);
-        %calculate local y
-        localy = cross(localz, localx);
-        unity = localy/norm(localy,2);
-        TM = [localx(:), localy(:), localz(:), origin(:); 0 0 0 1];
-        CM = [Xe, ones(4,1)];
-        Xe2D = TM \ CM';
-        Xe2D = Xe2D(1:3,:)';
-        % Measure the curvature
-        sx = max(Xe2D(:,1))-min(Xe2D(:,1));
-        sy = max(Xe2D(:,2))-min(Xe2D(:,2));
-        sz = max(Xe2D(:,3))-min(Xe2D(:,3));
-        curvature = (sz / ((sx*sy)^(1/2)))*100;
-        if curvature > 1
-            warning('excessive curvature in cut elements! Increase number of elements')
-        end
+        [k1,ExcessiveCurvatureInds,ECIC] = RotatePointsToPlane(Xe,ExcessiveCurvatureInds,ECIC);
+        
         % New order of polygon points
-        k = convhull(Xe2D(:,1),Xe2D(:,2));
-        k1 = k(1:end-1);
         Xe = Xe(k1,:);
         
         % Polygon edge color
@@ -191,10 +173,10 @@ for iel = SurfEle'
         surfh(nTriEle).faceNormal = n1;
         
         surfh(nTriEle+1).iel  = iel;
-        surfh(nTriEle+1).Xe    = Xe(t1,:);
-        surfh(nTriEle+1).xp = Xe(t1,1);
-        surfh(nTriEle+1).yp = Xe(t1,2);
-        surfh(nTriEle+1).zp = Xe(t1,3);
+        surfh(nTriEle+1).Xe    = Xe(t2,:);
+        surfh(nTriEle+1).xp = Xe(t2,1);
+        surfh(nTriEle+1).yp = Xe(t2,2);
+        surfh(nTriEle+1).zp = Xe(t2,3);
         %         surfh(nTriEle+1).nei = neighs(iel,:);
         surfh(nTriEle+1).faceNormal = n1;
         
@@ -211,38 +193,25 @@ for iel = SurfEle'
         
     elseif size(Xe,1) == 5
         %% Pentagon
+        
+
         % Rotate the polygon down to the x-y plane
-        origin = Xe(1,:);
-        localz = cross(Xe(2,:)-origin, Xe(3,:)-origin);
-        unitz = localz/norm(localz,2);
-        %calculate local x vector in plane
-        localx = Xe(2,:)-origin;
-        unitx = localx/norm(localx,2);
-        %calculate local y
-        localy = cross(localz, localx);
-        unity = localy/norm(localy,2);
-        TM = [localx(:), localy(:), localz(:), origin(:); 0 0 0 1];
-        CM = [Xe, ones(5,1)];
-        Xe2D = TM \ CM';
-        Xe2D = Xe2D(1:3,:)';
-        % Measure the curvature
-        sx = max(Xe2D(:,1))-min(Xe2D(:,1));
-        sy = max(Xe2D(:,2))-min(Xe2D(:,2));
-        sz = max(Xe2D(:,3))-min(Xe2D(:,3));
-        curvature = (sz / ((sx*sy)^(1/2)))*100;
-        if curvature > 1
-            warning('excessive curvature in cut elements! Increase number of elements')
-        end
+        [k1,ExcessiveCurvatureInds,ECIC] = RotatePointsToPlane(Xe,ExcessiveCurvatureInds,ECIC);
         
         % New order of polygon points
-        k = convhull(Xe2D(:,1),Xe2D(:,2));
-        k1 = k(1:end-1);
         Xe = Xe(k1,:);
         
         % Viz polygon edge
-        %         plot3(Xe([1:5,1],1),Xe([1:5,1],2),Xe([1:5,1],3),'-k')
-        %         quiver3(mean(Xe(:,1)),mean(Xe(:,2)),mean(Xe(:,3)),normal(1),normal(2),normal(3),0.1,'Color','k')
-        
+%         if curvature > 1
+%         	xfigure(55);clf; hold on;axis equal;
+%             patch(Xe(:,1),Xe(:,2),Xe(:,3),'m','EdgeColor','none')
+%             plot3(Xe([1:5,1],1),Xe([1:5,1],2),Xe([1:5,1],3),'-k')
+%             quiver3(mean(Xe(:,1)),mean(Xe(:,2)),mean(Xe(:,3)),normal(1),normal(2),normal(3),0.1,'Color','k')
+%         	pause
+%         end
+
+
+
         % Split into triangles
         t1 = [1,2,3];
         t2 = [1,3,4];
@@ -259,8 +228,8 @@ for iel = SurfEle'
             n = -n;
         end
         n1 = n;
-        %         patch(Xe(t1,1),Xe(t1,2),Xe(t1,3),'r','EdgeColor','none')
-        %         quiver3(mean(Xe(t1,1)),mean(Xe(t1,2)),mean(Xe(t1,3)),n(1),n(2),n(3),0.1,'Color','b')
+%                 patch(Xe(t1,1),Xe(t1,2),Xe(t1,3),'r','EdgeColor','none')
+%                 quiver3(mean(Xe(t1,1)),mean(Xe(t1,2)),mean(Xe(t1,3)),n(1),n(2),n(3),0.1,'Color','b')
         
         % triangle 2
         Xp = Xe(t2,:);
@@ -333,31 +302,9 @@ for iel = SurfEle'
     elseif size(Xe,1) == 6
         %% Hexagon
         % Rotate the polygon down to the x-y plane
-        origin = Xe(1,:);
-        localz = cross(Xe(2,:)-origin, Xe(3,:)-origin);
-        unitz = localz/norm(localz,2);
-        %calculate local x vector in plane
-        localx = Xe(2,:)-origin;
-        unitx = localx/norm(localx,2);
-        %calculate local y
-        localy = cross(localz, localx);
-        unity = localy/norm(localy,2);
-        TM = [localx(:), localy(:), localz(:), origin(:); 0 0 0 1];
-        CM = [Xe, ones(6,1)];
-        Xe2D = TM \ CM';
-        Xe2D = Xe2D(1:3,:)';
-        % Measure the curvature
-        sx = max(Xe2D(:,1))-min(Xe2D(:,1));
-        sy = max(Xe2D(:,2))-min(Xe2D(:,2));
-        sz = max(Xe2D(:,3))-min(Xe2D(:,3));
-        curvature = (sz / ((sx*sy)^(1/2)))*100;
-        if curvature > 1
-            warning('excessive curvature in cut elements! Increase number of elements')
-        end
+        [k1,ExcessiveCurvatureInds,ECIC] = RotatePointsToPlane(Xe,ExcessiveCurvatureInds,ECIC);
         
         % New order of polygon points
-        k = convhull(Xe2D(:,1),Xe2D(:,2));
-        k1 = k(1:end-1);
         Xe = Xe(k1,:);
         
         % Viz polygon edge
@@ -491,12 +438,53 @@ for iel = SurfEle'
     %     drawnow
 end
 
-T.Surface = surfh;
-T.SurfacePoints = surfX;
-T.SurfaceInfo.CutElements = SurfEle;
-T.SurfaceInfo.NCutElements = length(SurfEle);
+T.SurfaceP1 = surfh;
+T.SurfaceP1Points = surfX;
+T.SurfaceP1Info.CutElements = SurfEle;
+T.SurfaceP1Info.NCutElements = length(SurfEle);
 
 
 
 end
 
+function [k1,ExcessiveCurvatureInds,ECIC] = RotatePointsToPlane(Xe,ExcessiveCurvatureInds,ECIC)
+    origin = Xe(1,:);
+    localz = cross(Xe(2,:)-origin, Xe(3,:)-origin);
+    unitz = localz/norm(localz,2);
+    %calculate local x vector in plane
+    localx = Xe(2,:)-origin;
+    unitx = localx/norm(localx,2);
+    %calculate local y
+    localy = cross(localz, localx);
+    unity = localy/norm(localy,2);
+    TM = [unitx(:), unity(:), unitz(:), origin(:); 0 0 0 1];
+    CM = [Xe, ones(size(Xe,1),1)];
+    Xe2D = TM \ CM';
+    Xe2D = Xe2D(1:3,:)';
+    % Measure the curvature
+    sx = max(Xe2D(:,1))-min(Xe2D(:,1));
+    sy = max(Xe2D(:,2))-min(Xe2D(:,2));
+    sz = max(Xe2D(:,3))-min(Xe2D(:,3));
+    curvature = (sz / mean([sx,sy]))*100;
+    if curvature > 10
+        warning(['excessive curvature (',num2str(curvature),') in cut elements! Increase number of elements!'])
+        ECIC = ECIC+1;
+        ExcessiveCurvatureInds(ECIC).curvature = curvature;
+        ExcessiveCurvatureInds(ECIC).iel = iel;
+% 
+%         Xe2D
+%         xfigure(55);clf; hold on;axis equal;
+%         sx
+%         sy
+%         sz
+%         sz/sx
+%         putvar(Xe2D,sx,sy,sz)
+%         curvature
+%         plot3(Xe2D(:,1),Xe2D(:,2),Xe2D(:,3),'*k')
+%         pause
+    end
+
+    % New order of polygon points
+    k = convhull(Xe2D(:,1),Xe2D(:,2));
+    k1 = k(1:end-1);
+end
