@@ -35,6 +35,11 @@ classdef Hex1Mesh < matlab.mixin.Copyable
         SurfaceP1Points
         SurfaceP1Triangulation
         SurfaceP1Info
+        
+        SurfaceP2
+        SurfaceP2Points
+        SurfaceP2Triangulation
+        SurfaceP2Info
     end
     
     properties (Hidden)

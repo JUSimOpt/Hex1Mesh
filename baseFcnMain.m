@@ -17,9 +17,9 @@ iel = 1;
 
 disp('creating mesh...')
 tic
-mesh1 = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
+H = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
 toc
-hv = mesh1.vizMesh(iel,'ElementNumbers','NodeNumbers');
+hv = H.vizMesh(iel,'ElementNumbers','NodeNumbers');
 %     8-----7
 %    /|    /|
 %   6-----5 |
@@ -36,23 +36,21 @@ X = [0,0,0;...
      0,1,1;...
      1,0,1;...
      1,1,1];
-% X = [0,0,0;...
-%      0,1,0]
+
+ 
 tic
-[fi, fix, ~, ~, vol] = baseHexCubic(mesh1,iel,X(:,1),X(:,2),X(:,3))
+[fi, fix, fiy, fiz, vol] = baseHexP1(H,iel,X);
 toc
-tic
-[fi, fix, ~, ~, vol] = baseHex(mesh1,iel,X(:,1),X(:,2),X(:,3))
-toc
+
 %%
-% nele = 1000;
-% disp(['Calling baseHex for 8 points over ',num2str(nele),' elements'])
-% tic
-% for i = 1:nele
-%     X = rand(8,3);
-%     [fi, fix, fiy, fiz, vol] = baseHex(mesh1,iel,X(:,1),X(:,2),X(:,3));
-% end
-% toc
+nele = 5000;
+disp(['Calling baseHex for 8 points over ',num2str(nele),' elements'])
+tic
+for i = 1:nele
+    X = rand(8,3);
+    [fi, fix, fiy, fiz, vol] = baseHexP1(H,iel,X);
+end
+toc
 % 
 % disp(['Calling baseHexCubic for 8 points over ',num2str(nele),' elements'])
 % tic

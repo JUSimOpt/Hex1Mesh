@@ -1,5 +1,11 @@
 function V = ElementVolume(T,iel)
+% V = ElementVolume(T,iel)
+% node is a 1-by-8 vector
+% X is an m-by-3 matrix
 % Efficient Computation of Volume of Hexhedral Cells by J.Grandy
+% Hexahedral is numbered bottom face starting in lower right corner going
+% counter-clockwise viewing from the bottom. Bottom to top. 
+
 node = T.Connectivity(iel,:);
 X = T.X;
 v11 = X(node(6),:)-X(node(2),:);

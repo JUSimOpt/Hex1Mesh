@@ -9,7 +9,7 @@ y0 = 0;
 y1 = 1;
 z0 = 0;
 z1 = 1;
-ne = 6;
+ne = 5;
 nxe = ne;nye = ne;nze = ne;
 
 disp('creating mesh...')
@@ -17,10 +17,7 @@ tic
 H = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
 toc
 
-% hv = H.vizMesh('ElementNumbers','NodeNumbers');
-
 N1 = H.Neighbors('Structured');
-
 
 xnod = H.XC;
 ynod = H.YC;
@@ -35,44 +32,14 @@ surfaceFunction = @(x,y,z) ((x-xc).^2+(z - zc).^2+(y - yc).^2).^.5-R;
 
 phi = surfaceFunction(xnod, ynod, znod);
 
-
-%% CutP1 Surface
-disp('CutP1')
-tic
-H.CutP1(phi);
-toc
-
-%% Triangulate P1
-disp('Triangulate P1')
-tic
-[tri,surfX] = H.TriangulateP1;
-toc
-h2 = H.vizP1Surf()
-
-%% CutP2 Surface
+%% CutP2 surface
 surfh = H.CutP2(phi);
+
 %% Viz P2 Surface
 disp('Viz P2 surface')
 tic
-hv = H.vizP2Surf('FaceColor','c','EdgeColor','k','nP2Ele',5);
+    hv = H.vizP2Surf();
 toc
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

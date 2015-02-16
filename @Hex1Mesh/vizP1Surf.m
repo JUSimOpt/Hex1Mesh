@@ -10,7 +10,7 @@ if ~isempty(T.SurfaceP1Triangulation)
     hp.fig = xfigure; axis equal; hold on;
     FV.Vertices = T.SurfaceP1Points;
     FV.Faces = T.SurfaceP1Triangulation;
-    % shading interp
+    shading interp
     hp.light = light;
     hp.patch = patch(FV,'FaceColor','c','FaceLighting','gouraud');
     [az,el]=view(136,16);

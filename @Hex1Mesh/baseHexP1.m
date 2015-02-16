@@ -1,14 +1,16 @@
-function [fi, fix, fiy, fiz, vol] = baseHex(hm,iel,x,y,z)
-% computes base functions and derivatives of HEX element in one or several
+function [fi, fix, fiy, fiz, vol] = baseHexP1(T,iel,X)
+%BASEHEXP1 Basis functions of Hex1 elements
+% Computes base functions and derivatives of HEX element in one or several
 % points
-% hm is the HEX mesh class
-% iel is the index
-% x, y and z are vector points. Basefunctions are evaluated in these
-% points.
-iv = hm.Connectivity(iel,:);
+% [fi, fix, fiy, fiz, vol] = baseHexP1(T,iel,X)
+% T is the HEX mesh class
+% iel is the element index number
+% X is a set of coordinates at which to evaluate the basefunctions.
+
+iv = T.Connectivity(iel,:);
 I = [1     2     4     3     5     8     6     7];
-xc = hm.xnod(iv(I)); yc = hm.ynod(iv(I)); zc = hm.znod(iv(I));
-% xc = hm.xnod(iv); yc = hm.ynod(iv); zc = hm.znod(iv);
+xc = T.XC(iv(I)); yc = T.YC(iv(I)); zc = T.ZC(iv(I));
+
 
 A = [1, xc(1),yc(1),zc(1),xc(1)*yc(1),yc(1)*zc(1),zc(1)*xc(1),xc(1)*yc(1)*zc(1);...
     1, xc(2),yc(2),zc(2),xc(2)*yc(2),yc(2)*zc(2),zc(2)*xc(2),xc(2)*yc(2)*zc(2);...
@@ -22,10 +24,11 @@ A = [1, xc(1),yc(1),zc(1),xc(1)*yc(1),yc(1)*zc(1),zc(1)*xc(1),xc(1)*yc(1)*zc(1);
 fim = (A\eye(8));
 
 
-nx = length(x);
-o1 = ones(1,nx);
-z1 = zeros(1,nx);
+np = size(X,1);
+o1 = ones(1,np);
+z1 = zeros(1,np);
 
+x = X(:,1); y = X(:,2); z = X(:,3);
 x = x(:)'; y = y(:)'; z = z(:)';
 fi = fim'*[o1;x;y;z;x.*y;y.*z;z.*x;x.*y.*z];
 
