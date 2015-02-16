@@ -12,14 +12,15 @@ Hexahedral Mesh repository. Includes generation, visualization, basefunctions, C
 - CutP1()
 - vizP1Surf()
 - TriangulateP1()
+- CutP2()
+- baseHexP1()
 
 ----------
 
 **TODO:**
 
-- baseHexLin()
 - baseHexQuad()
-- CutP2()
+
 
 ## Mesh numbering
 The mesh is numbered according to the figure below. The red and cyan colors are used to explain the refinement algorithm.
