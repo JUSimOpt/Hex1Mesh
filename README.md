@@ -48,11 +48,11 @@ The mesh is numbered according to the figure below. The red and cyan colors are 
 
 ### Examples
 - P2 surface:
-![](https://raw.githubusercontent.com/cenmir/Hex1Mesh/v1.0/Examples/P2.png)
+![](https://raw.githubusercontent.com/cenmir/Hex1Mesh/master/Hex1Mesh/Examples/P2.png)
 
 - Issue with mid nodes not being in-plane:
-![](https://raw.githubusercontent.com/cenmir/Hex1Mesh/v1.0/Examples/noInPlaneSearch.png)
+![](https://raw.githubusercontent.com/cenmir/Hex1Mesh/master/Hex1Mesh/Examples/noInPlaneSearch.png)
 
 - In plane projection:
-![](https://raw.githubusercontent.com/cenmir/Hex1Mesh/v1.0/Examples/Tangential%20Projection.png)
+![](https://raw.githubusercontent.com/cenmir/Hex1Mesh/master/Hex1Mesh/Examples/Tangential%20Projection.png)
 (Blue is original search direction, black is in-plane search direction, green is face normal)
