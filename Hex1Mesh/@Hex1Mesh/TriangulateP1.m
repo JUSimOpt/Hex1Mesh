@@ -1,4 +1,4 @@
-function [tri,surfX,T] = TriangulateP1(T)
+function [tri,X,T] = TriangulateP1(T)
 %TRIANGULATEP1 Creates a triangulation from a set of P1 triangles
 %   Triangulates the P1 Surface triangle set surfX
 %   
@@ -158,5 +158,44 @@ for iP = 1:3:size(surfX,1)
     
 end
 
+%% Weld
+X = surfX;
+
+mt = 0;
+map = zeros(size(X,1),2);
+c = 0;
+for iel = 1:size(tri)
+    itri = tri(iel,:);
+    
+    if iel == 1
+        for it = itri
+            mt=mt+1;
+        end
+        map(1:3,1)=[1:3]';
+        map(1:3,2)=[1:3]';
+        c = 3;
+        mt = 4;
+    else
+        for indt=1:3
+            it = itri(indt);
+            if it >= mt && ~any(it==map(:,1))
+                map(c+1,:) = [it,mt];
+                mt=mt+1;
+                c=c+1;
+            else
+            end
+            
+        end
+        
+    end
+end
+map = map(all(map~=0,2),:);
+
+for im = 1:size(map,1)
+    tri(tri==map(im,1)) = map(im,2);
+end
+X =  X(map(:,1),:);
+
+%% Return
 T.SurfaceP1Triangulation = tri;
 T.SurfaceP1 = surfh;

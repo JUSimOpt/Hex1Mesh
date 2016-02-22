@@ -50,7 +50,7 @@ function [surfh,T] = CutP2(T, phi, level)
 
         indP = find(~any(isnan(P),2));
         P = P(indP,:);
-        %     plot3(Xe(:,1),Xe(:,2),Xe(:,3),'ob')
+%         plot3(P(:,1),P(:,2),P(:,3),'ob')
 
         if size(P,1) == 3
             %% Tri

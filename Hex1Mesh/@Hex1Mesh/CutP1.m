@@ -1,507 +1,200 @@
-function [surfX, surfh, ExcessiveCurvatureInds] = CutP1(T, phi)
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
+function [surfh,T] = CutP1(T, phi, level)
 
-nodes = T.Connectivity;
-xnod = T.XC;
-ynod = T.YC;
-znod = T.ZC;
+    nodes = T.Connectivity;
+    xnod = T.XC;
+    ynod = T.YC;
+    znod = T.ZC;
+    
+    
+    SurfEle = find(sum(phi(nodes)>0,2) > 0 & sum(phi(nodes)>0,2)< 8);
 
-SurfEle = find(sum(phi(nodes)>0,2) > 0 & sum(phi(nodes)>0,2)< 8);
 
-nprec = 1e-8;
-isequalAbs = @(x,y) ( abs(x-y) <= nprec );
-isodd = @(x) mod(x,2);
-isequalPoint = @(a,b) (sum(isequalAbs(a, b))==3);
+    nsurfEle = length(SurfEle);
 
-nsurfEle = length(SurfEle);
+    % preallocate space for coords
+    % Maximum size is two triangles per HEX
+    % Set all to nan rather than zero to be able to find empty elements later
+    surfX = ones(nsurfEle*2,3)*nan;
+    surfh(nsurfEle*2).iel = [];
+    nTriEle = 1;% number of triangles found
 
-% preallocate space for coords
-% Maximum size is two triangles per HEX
-% Set all to nan rather than zero to be able to find empty elements later
-surfX = ones(nsurfEle*2,3)*nan;
-surfh(nsurfEle*2).iel = [];
-nTriEle = 1;% number of triangles found
-
-ExcessiveCurvatureInds = [];
-ECIC = 0;
-
-for iel = SurfEle'
-    %% Compute cut points
-    iv = nodes(iel,:);
-    faces = T.Element(iel).faces;
-    Pe = NaN(2*6,3);
-    ed = 1;
-    normal = zeros(12,3);
-    for j = 1:size(faces,1)
-        ivv = faces(j,:);
-        xc = xnod(ivv); yc = ynod(ivv); zc = znod(ivv);
-        XC =[xc,yc,zc];
-        q  = phi(faces(j,:));
-        %         for in = 1:4
-        %             text(xc(in),yc(in),zc(in), [num2str(ivv(in)),', ',num2str(q(in))] )
-        %         end
-        %         axis equal tight;
+    for iel = SurfEle'
+        %% Compute cut points
+        iv = nodes(iel,:);
+%         % Viz element
+%         xfigure(1); hold on; axis equal;
+%         ele = iel;
+%         fele = [6*ele-5;6*ele-4;6*ele-3;6*ele-2;6*ele-1;6*ele-0;];
+%         patch(T.XC(T.Faces(fele(:),:)'),T.YC(T.Faces(fele(:),:)'),T.ZC(T.Faces(fele(:),:)'),'w','FaceColor','none');
         
-        locEdges = [ivv(1),ivv(2);...
-            ivv(2),ivv(3);...
-            ivv(3),ivv(4);...
-            ivv(4),ivv(1)];
-        %         text(mean(xc),mean(yc),mean(zc),num2str(j))
+        edges = T.Element(iel).edges;
+        %% Viz edges
+%         ed = unique(edges);
+%         for j = 1:8
+%             text(xnod(ed(j)),ynod(ed(j)),znod(ed(j)),num2str(ed(j)),'BackgroundColor','w')
+%         end
         
-        for ied = 1:4
-            if ied == 4
-                ui = [q(4),q(1)];
-                xi = [XC(4,:);XC(1,:)];
-            else
-                ui = [q(ied),q(ied+1)];
-                xi = [XC(ied,:);XC(ied+1,:)];
-            end
-            if sign(ui(1)) ~= sign(ui(2))
-                %                disp('edge cut')
-                %                locEdges(ied,:)
-                [c,k] = sort(ui);
-                Xi = xi(k,:);
-                ip = Xi(1,:)+(Xi(2,:)-Xi(1,:)).*((0-c(1))/(c(2)-c(1)));
-                Pe(ed,:) = ip;
+
+        %% Loop over all edges
+        P = NaN(12,3);
+        normal = P;
+        for j = 1:size(edges,1)
+            ivv = edges(j,:);
+            xc = xnod(ivv); yc = ynod(ivv); zc = znod(ivv);
+            XC =[xc,yc,zc];
+            q  = phi(edges(j,:));
+            if sign(q(1)) ~= sign(q(2))
+                [u,k] = sort(q);
+                Xi = XC(k,:);
                 n = Xi(2,:)-Xi(1,:);
-                normal(ed,:) = n;
-                %                 plot3(ip(1),ip(2),ip(3),'b*')
-                ed = ed+1;
+                normal(j,:) = n/norm(n);
+                P(j,:) = Xi(1,:)+(Xi(2,:)-Xi(1,:)).*((level-u(1))/(u(2)-u(1)));
             end
+        end
+        
+%         indP = find(~any(isnan(P),2));
+        P = P(~any(isnan(P),2),:);
+        
+        normal = mean(normal(all(~isnan(normal),2),:),1);
+        normal = normal/norm(normal);
+        
+%         quiver3(mean(P(:,1)),mean(P(:,2)),mean(P(:,3)),normal(1),normal(2),normal(3),0.1,'Color','b')
+%         for i = 1:8
+%            text(xnod(iv(i)),ynod(iv(i)),znod(iv(i)),num2str(phi(iv(i))),'BackgroundColor','w') 
+%         end
+%         plot3(P(:,1),P(:,2),P(:,3),'b*')
+%         
+% pause
+        
+        
+        %% Extract triangles
+        if size(P,1) == 3
+            %% Triangle
+            [surfh, nTriEle, surfX] = assembleElement(P,surfX,surfh,nTriEle,normal,iel,1);
+        
+        elseif size(P,1) == 4
+            %% Quadliteral
+            [surfh, nTriEle, surfX] = assembleElement(P,surfX,surfh,nTriEle,normal,iel,2);
+                
             
+
+        elseif size(P,1) == 5
+            %% Pentagon
+            [surfh, nTriEle, surfX] = assembleElement(P,surfX,surfh,nTriEle,normal,iel,3);
+                
+            
+
+        elseif size(P,1) == 6
+            %% Hexagon
+            [surfh, nTriEle, surfX] = assembleElement(P,surfX,surfh,nTriEle,normal,iel,4);
+
+        else
+            patch(P(:,1),P(:,2),P(:,3),'k')
+            error('Unknown element')
         end
         
+
     end
     
-    %% Convert to triangle elements
-    normal = sum(normal,1);
-    normal = normal/norm(normal);
     
-    Xe = unique(Pe,'rows','stable');
-    Xe = Xe(~any(isnan(Xe),2),:);
+    nele = length([surfh.iel]);
+    surfh(nele+1:end) = [];
     
+    T.SurfaceP1 = surfh;
+    T.SurfaceP1Points = surfX;
+    T.SurfaceP1Info.CutElements = SurfEle;
+    T.SurfaceP1Info.NCutElements = length(SurfEle);
     
-%     xfigure(1); hold on; axis equal;
-%     ele = iel;
-%     fele = [6*ele-5;6*ele-4;6*ele-3;6*ele-2;6*ele-1;6*ele-0;];
-%     patch(T.XC(T.Faces(fele(:),:)'),T.YC(T.Faces(fele(:),:)'),T.ZC(T.Faces(fele(:),:)'),'w','FaceColor','none');
-%     quiver3(mean(Xe(:,1)),mean(Xe(:,2)),mean(Xe(:,3)),normal(1),normal(2),normal(3),0.1,'Color','b')
-%     for i = 1:8
-%        text(xnod(iv(i)),ynod(iv(i)),znod(iv(i)),num2str(phi(iv(i))),'BackgroundColor','w') 
-%     end
-%     plot3(Xe(:,1),Xe(:,2),Xe(:,3),'b*')
-    
-    
-    
-    if size(Xe,1) == 3
-        %% Triangle
-        t1 = [1,2,3];
-        
-        Xp = Xe;
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(n) ~= sign(normal)
-            t1 = [1,3,2];
-            n = -n;
-        end
-        
-        %         patch(Xe(t1,1),Xe(t1,2),Xe(t1,3),'c','EdgeColor','k')
-        %         quiver3(mean(Xe(t1,1)),mean(Xe(t1,2)),mean(Xe(t1,3)),n(1),n(2),n(3),0.1,'Color','y')
-        
-        % Add to surfh
-        surfh(nTriEle).iel  = iel;
-        surfh(nTriEle).Xe    = Xe(t1,:);
-        surfh(nTriEle).xp = Xe(t1,1);
-        surfh(nTriEle).yp = Xe(t1,2);
-        surfh(nTriEle).zp = Xe(t1,3);
-        %         surfh(nTriEle).nei = neighs(iel,:);
-        surfh(nTriEle).faceNormal = n;
-        
-        %Assembly
-        lo = nTriEle*3-2;
-        up = nTriEle*3;
-        surfX(lo:up,1:3) = Xe(t1,:);
-        nTriEle = nTriEle +1;
-        
-    elseif size(Xe,1) == 4
-        %% Quadliteral
-        % Viz Polygon normal
-        %         for i = 1:4
-        %             text(Xe(i,1),Xe(i,2),Xe(i,3),num2str(i),'BackgroundColor','w')
-        %         end
-        %         quiver3(mean(Xe(:,1)),mean(Xe(:,2)),mean(Xe(:,3)),normal(1),normal(2),normal(3),0.1,'Color','k')
-        
-        % Rotate the polygon down to the x-y plane
-        [k1,ExcessiveCurvatureInds,ECIC] = RotatePointsToPlane(Xe,ExcessiveCurvatureInds,ECIC);
-        
-        % New order of polygon points
-        Xe = Xe(k1,:);
-        
-%         for i = 1:4
-%             text(Xe(i,1),Xe(i,2),Xe(i,3),num2str(i),'BackgroundColor','w') 
-%         end
-        
-        % Polygon edge color
-        %         plot3(Xe([1:4,1],1),Xe([1:4,1],2),Xe([1:4,1],3),'-k')
-        
-        % Split into triangles
-        t1 = [1,3,2];
-        t2 = [1,4,3];
-        
-        % triangle 1
-        Xp = Xe(t1,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(dot(n,normal)) < 0
-            t1 = [1,2,3];
-            n = -n;
-        end
-        n1 = n;
-%                 patch(Xe(t1,1),Xe(t1,2),Xe(t1,3),'b','EdgeColor','none')
-%                 quiver3(mean(Xe(t1,1)),mean(Xe(t1,2)),mean(Xe(t1,3)),n(1),n(2),n(3),0.1,'Color','g')
-        
-        % triangle 2
-        Xp = Xe(t2,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(dot(n,normal)) < 0
-            t2 = [1,3,4];
-            n = -n;
-        end
-        n2 = n;
-        %         patch(Xe(t2,1),Xe(t2,2),Xe(t2,3),'b','EdgeColor','none')
-        %         quiver3(mean(Xe(t2,1)),mean(Xe(t2,2)),mean(Xe(t2,3)),n(1),n(2),n(3),0.1,'Color','g')
-        
-        % Add to surfh
-        surfh(nTriEle).iel  = iel;
-        surfh(nTriEle).Xe    = Xe(t1,:);
-        surfh(nTriEle).xp = Xe(t1,1);
-        surfh(nTriEle).yp = Xe(t1,2);
-        surfh(nTriEle).zp = Xe(t1,3);
-        %         surfh(nTriEle).nei = neighs(iel,:);
-        surfh(nTriEle).faceNormal = n1;
-        
-        surfh(nTriEle+1).iel  = iel;
-        surfh(nTriEle+1).Xe    = Xe(t2,:);
-        surfh(nTriEle+1).xp = Xe(t2,1);
-        surfh(nTriEle+1).yp = Xe(t2,2);
-        surfh(nTriEle+1).zp = Xe(t2,3);
-        %         surfh(nTriEle+1).nei = neighs(iel,:);
-        surfh(nTriEle+1).faceNormal = n2;
-        
-        % Assembly
-        lo = nTriEle*3-2;
-        up = nTriEle*3;
-        surfX(lo:up,1:3) = Xe(t1,:);
-        
-        lo = (nTriEle+1)*3-2;
-        up = (nTriEle+1)*3;
-        surfX(lo:up,1:3) = Xe(t2,:);
-        
-        nTriEle = nTriEle +2;
-        
-    elseif size(Xe,1) == 5
-        %% Pentagon
-        
-
-        % Rotate the polygon down to the x-y plane
-        [k1,ExcessiveCurvatureInds,ECIC] = RotatePointsToPlane(Xe,ExcessiveCurvatureInds,ECIC);
-        
-        % New order of polygon points
-        Xe = Xe(k1,:);
-        
-        % Viz polygon edge
-%         if curvature > 1
-%         	xfigure(55);clf; hold on;axis equal;
-%             patch(Xe(:,1),Xe(:,2),Xe(:,3),'m','EdgeColor','none')
-%             plot3(Xe([1:5,1],1),Xe([1:5,1],2),Xe([1:5,1],3),'-k')
-%             quiver3(mean(Xe(:,1)),mean(Xe(:,2)),mean(Xe(:,3)),normal(1),normal(2),normal(3),0.1,'Color','k')
-%         	pause
-%         end
-
-
-
-        % Split into triangles
-        t1 = [1,2,3];
-        t2 = [1,3,4];
-        t3 = [1,4,5];
-        
-        % triangle 1
-        Xp = Xe(t1,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(dot(n,normal)) < 0
-            t1 = [1,3,2];
-            n = -n;
-        end
-        n1 = n;
-%                 patch(Xe(t1,1),Xe(t1,2),Xe(t1,3),'r','EdgeColor','none')
-%                 quiver3(mean(Xe(t1,1)),mean(Xe(t1,2)),mean(Xe(t1,3)),n(1),n(2),n(3),0.1,'Color','b')
-        
-        % triangle 2
-        Xp = Xe(t2,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(dot(n,normal)) < 0
-            t2 = [1,4,3];
-            n = -n;
-        end
-        n2 = n;
-        %         patch(Xe(t2,1),Xe(t2,2),Xe(t2,3),'r','EdgeColor','none')
-        %         quiver3(mean(Xe(t2,1)),mean(Xe(t2,2)),mean(Xe(t2,3)),n(1),n(2),n(3),0.1,'Color','b')
-        
-        % triangle 3
-        Xp = Xe(t3,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(dot(n,normal)) < 0
-            t3 = [1,5,4];
-            n = -n;
-        end
-        n3 = n;
-        %         patch(Xe(t3,1),Xe(t3,2),Xe(t3,3),'r','EdgeColor','none')
-        %         quiver3(mean(Xe(t3,1)),mean(Xe(t3,2)),mean(Xe(t3,3)),n(1),n(2),n(3),0.1,'Color','b')
-        
-        % Add to surfh
-        surfh(nTriEle).iel = iel;
-        surfh(nTriEle).Xe = Xe(t1,:);
-        surfh(nTriEle).xp = Xe(t1,1);
-        surfh(nTriEle).yp = Xe(t1,2);
-        surfh(nTriEle).zp = Xe(t1,3);
-        %         surfh(nTriEle).nei = neighs(iel,:);
-        surfh(nTriEle).faceNormal = n1;
-        
-        surfh(nTriEle+1).iel = iel;
-        surfh(nTriEle+1).Xe = Xe(t2,:);
-        surfh(nTriEle+1).xp = Xe(t2,1);
-        surfh(nTriEle+1).yp = Xe(t2,2);
-        surfh(nTriEle+1).zp = Xe(t2,3);
-        %         surfh(nTriEle+1).nei = neighs(iel,:);
-        surfh(nTriEle+1).faceNormal = n2;
-        
-        surfh(nTriEle+2).iel = iel;
-        surfh(nTriEle+2).Xe = Xe(t3,:);
-        surfh(nTriEle+2).xp = Xe(t3,1);
-        surfh(nTriEle+2).yp = Xe(t3,2);
-        surfh(nTriEle+2).zp = Xe(t3,3);
-        %         surfh(nTriEle+2).nei = neighs(iel,:);
-        surfh(nTriEle+2).faceNormal = n3;
-        
-        % Assembly
-        lo = nTriEle*3-2;
-        up = nTriEle*3;
-        surfX(lo:up,1:3) = Xe(t1,:);
-        
-        lo = (nTriEle+1)*3-2;
-        up = (nTriEle+1)*3;
-        surfX(lo:up,1:3) = Xe(t2,:);
-        
-        lo = (nTriEle+2)*3-2;
-        up = (nTriEle+2)*3;
-        surfX(lo:up,1:3) = Xe(t3,:);
-        
-        nTriEle = nTriEle +3;
-        
-    elseif size(Xe,1) == 6
-        %% Hexagon
-        % Rotate the polygon down to the x-y plane
-        [k1,ExcessiveCurvatureInds,ECIC] = RotatePointsToPlane(Xe,ExcessiveCurvatureInds,ECIC);
-        
-        % New order of polygon points
-        Xe = Xe(k1,:);
-        
-        % Viz polygon edge
-        %         plot3(Xe([1:6,1],1),Xe([1:6,1],2),Xe([1:6,1],3),'-k')
-        
-        %         patch(Xe(:,1),Xe(:,2),Xe(:,3),'g')
-        %         quiver3(mean(Xe(:,1)),mean(Xe(:,2)),mean(Xe(:,3)),normal(1),normal(2),normal(3),0.1,'Color','k')
-        %         for i = 1:6
-        %            text(Xe(i,1),Xe(i,2),Xe(i,3),num2str(i),'BackgroundColor','w')
-        %         end
-        %         pause
-        
-        % Split into triangles
-        t1 = [1,2,3];
-        t2 = [1,3,4];
-        t3 = [1,4,5];
-        t4 = [1,5,6];
-        
-        % triangle 1
-        Xp = Xe(t1,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(dot(n,normal)) < 0
-            t1 = [1,3,2];
-            n = -n;
-        end
-        n1 = n;
-        %         patch(Xe(t1,1),Xe(t1,2),Xe(t1,3),'m','EdgeColor','none')
-        %         quiver3(mean(Xe(t1,1)),mean(Xe(t1,2)),mean(Xe(t1,3)),n(1),n(2),n(3),0.1,'Color','k')
-        
-        % triangle 2
-        Xp = Xe(t2,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(n) ~= sign(normal)
-            t2 = [1,4,3];
-            n = -n;
-        end
-        n2 = n;
-        %         patch(Xe(t2,1),Xe(t2,2),Xe(t2,3),'m','EdgeColor','none')
-        %         quiver3(mean(Xe(t2,1)),mean(Xe(t2,2)),mean(Xe(t2,3)),n(1),n(2),n(3),0.1,'Color','k')
-        
-        % triangle 3
-        Xp = Xe(t3,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(dot(n,normal)) < 0
-            t3 = [1,5,4];
-            n = -n;
-        end
-        n3 = n;
-        %         patch(Xe(t3,1),Xe(t3,2),Xe(t3,3),'m','EdgeColor','none')
-        %         quiver3(mean(Xe(t3,1)),mean(Xe(t3,2)),mean(Xe(t3,3)),n(1),n(2),n(3),0.1,'Color','k')
-        
-        % triangle 4
-        Xp = Xe(t4,:);
-        v1 = Xp(2,:)-Xp(1,:);
-        v2 = Xp(3,:)-Xp(1,:);
-        n = cross(v1,v2);
-        n = n/ (n(1)^2+n(2)^2+n(3)^2)^0.5;
-        if sign(dot(n,normal)) < 0
-            t4 = [1,6,5];
-            n = -n;
-        end
-        n4 = n;
-        %         patch(Xe(t4,1),Xe(t4,2),Xe(t4,3),'m','EdgeColor','none')
-        %         quiver3(mean(Xe(t4,1)),mean(Xe(t4,2)),mean(Xe(t4,3)),n(1),n(2),n(3),0.1,'Color','k')
-        
-        % Add to surfh
-        surfh(nTriEle).iel = iel;
-        surfh(nTriEle).Xe = Xe(t1,:);
-        surfh(nTriEle).xp = Xe(t1,1);
-        surfh(nTriEle).yp = Xe(t1,2);
-        surfh(nTriEle).zp = Xe(t1,3);
-        %         surfh(nTriEle).nei = neighs(iel,:);
-        surfh(nTriEle).faceNormal = n1;
-        
-        surfh(nTriEle+1).iel = iel;
-        surfh(nTriEle+1).Xe = Xe(t2,:);
-        surfh(nTriEle+1).xp = Xe(t2,1);
-        surfh(nTriEle+1).yp = Xe(t2,2);
-        surfh(nTriEle+1).zp = Xe(t2,3);
-        %         surfh(nTriEle+1).nei = neighs(iel,:);
-        surfh(nTriEle+1).faceNormal = n2;
-        
-        surfh(nTriEle+2).iel = iel;
-        surfh(nTriEle+2).Xe = Xe(t3,:);
-        surfh(nTriEle+2).xp = Xe(t3,1);
-        surfh(nTriEle+2).yp = Xe(t3,2);
-        surfh(nTriEle+2).zp = Xe(t3,3);
-        %         surfh(nTriEle+2).nei = neighs(iel,:);
-        surfh(nTriEle+2).faceNormal = n3;
-        
-        surfh(nTriEle+3).iel = iel;
-        surfh(nTriEle+3).Xe = Xe(t4,:);
-        surfh(nTriEle+3).xp = Xe(t4,1);
-        surfh(nTriEle+3).yp = Xe(t4,2);
-        surfh(nTriEle+3).zp = Xe(t4,3);
-        %         surfh(nTriEle+3).nei = neighs(iel,:);
-        surfh(nTriEle+3).faceNormal = n4;
-        
-        % Assembly
-        lo = nTriEle*3-2;
-        up = nTriEle*3;
-        surfX(lo:up,1:3) = Xe(t1,:);
-        
-        lo = (nTriEle+1)*3-2;
-        up = (nTriEle+1)*3;
-        surfX(lo:up,1:3) = Xe(t2,:);
-        
-        lo = (nTriEle+2)*3-2;
-        up = (nTriEle+2)*3;
-        surfX(lo:up,1:3) = Xe(t3,:);
-        
-        lo = (nTriEle+3)*3-2;
-        up = (nTriEle+3)*3;
-        surfX(lo:up,1:3) = Xe(t4,:);
-        
-        nTriEle = nTriEle +4;
-        
-    else
-        %         patch(Xe(:,1),Xe(:,2),Xe(:,3),'k')
-        pause
-    end
-    %     drawnow
-%     pause
 end
-
-T.SurfaceP1 = surfh;
-T.SurfaceP1Points = surfX;
-T.SurfaceP1Info.CutElements = SurfEle;
-T.SurfaceP1Info.NCutElements = length(SurfEle);
-
-
-
-end
-
-function [k1,ExcessiveCurvatureInds,ECIC] = RotatePointsToPlane(Xe,ExcessiveCurvatureInds,ECIC)
-    origin = Xe(1,:);
-    localz = cross(Xe(2,:)-origin, Xe(3,:)-origin);
-    unitz = localz/norm(localz,2);
-    %calculate local x vector in plane
-    localx = Xe(2,:)-origin;
-    unitx = localx/norm(localx,2);
-    %calculate local y
-    localy = cross(localz, localx);
-    unity = localy/norm(localy,2);
-    TM = [unitx(:), unity(:), unitz(:), origin(:); 0 0 0 1];
-    CM = [Xe, ones(size(Xe,1),1)];
-    Xe2D = TM \ CM';
-    Xe2D = Xe2D(1:3,:)';
-    % Measure the curvature
-    sx = max(Xe2D(:,1))-min(Xe2D(:,1));
-    sy = max(Xe2D(:,2))-min(Xe2D(:,2));
-    sz = max(Xe2D(:,3))-min(Xe2D(:,3));
-    curvature = (sz / mean([sx,sy]))*100;
-    if curvature > 10
-        warning(['excessive curvature (',num2str(curvature),') in cut elements! Increase number of elements!'])
-        ECIC = ECIC+1;
-        ExcessiveCurvatureInds(ECIC).curvature = curvature;
-        ExcessiveCurvatureInds(ECIC).iel = iel;
-% 
-%         Xe2D
-%         xfigure(55);clf; hold on;axis equal;
-%         sx
-%         sy
-%         sz
-%         sz/sx
-%         putvar(Xe2D,sx,sy,sz)
-%         curvature
-%         plot3(Xe2D(:,1),Xe2D(:,2),Xe2D(:,3),'*k')
-%         pause
-    end
+    
+    function [surfh, nTriEle, surfX] = assembleElement(P,surfX,surfh,nTriEle,normal,iel,ntri)
+    % Rotate the polygon down to the x-y plane
+    k1= RotatePointsToPlane(P);
 
     % New order of polygon points
-    k = convhull(Xe2D(:,1),Xe2D(:,2));
-    k1 = k(1:end-1);
-end
+    Xe = P(k1,:);
+    np = size(Xe,1);
+
+%     for i = 1:4
+%         text(Xe(i,1),Xe(i,2),Xe(i,3),num2str(i),'BackgroundColor','w')
+%     end
+%     plot3(Xe([1:np,1],1),Xe([1:np,1],2),Xe([1:np,1],3),'-k')
+
+    % Split into triangles
+    tt = [ones(ntri,1),(2:ntri+1)',(3:ntri+2)'];
+
+    for itri = 1:ntri
+        % triangle itri
+        ti = tt(itri,:);
+        Xp = Xe(ti,:);
+        v1 = Xp(2,:)-Xp(1,:);
+        v2 = Xp(3,:)-Xp(1,:);
+        n = cross(v1,v2);
+        n = n/norm(n);
+        if normal*n' < 0
+            ti = [ti(1),ti(3),ti(2)];
+            n = -n;
+        end
+        
+        switch ntri
+            case 1
+                color = 'b';
+            case 2
+                color = 'c';
+            case 3
+                color = 'r';
+            case 4
+                color = 'm';
+        end
+%         patch(Xe(ti,1),Xe(ti,2),Xe(ti,3),color,'EdgeColor','none')
+%         quiver3(mean(Xe(ti,1)),mean(Xe(ti,2)),mean(Xe(ti,3)),n(1),n(2),n(3),0.1,'Color','b')
+
+        % Add to surfh
+        
+        surfh(nTriEle+itri-1).iel  = iel;
+        surfh(nTriEle+itri-1).Xe = Xe(ti,:);
+        surfh(nTriEle+itri-1).xp = Xe(ti,1);
+        surfh(nTriEle+itri-1).yp = Xe(ti,2);
+        surfh(nTriEle+itri-1).zp = Xe(ti,3);
+        surfh(nTriEle+itri-1).faceNormal = n;
+        surfh(nTriEle+itri-1).ElementNormal = normal;
+
+        % Assembly
+        lo = (nTriEle+itri-1)*3-2;
+        up = (nTriEle+itri-1)*3;
+        surfX(lo:up,1:3) = Xe(ti,:);
+        
+    end
+
+    nTriEle = nTriEle + ntri;
+
+    end
+
+    function [k1] = RotatePointsToPlane(Xe)
+        origin = Xe(1,:);
+        localz = cross(Xe(2,:)-origin, Xe(3,:)-origin);
+        unitz = localz/norm(localz,2);
+        %calculate local x vector in plane
+        localx = Xe(2,:)-origin;
+        unitx = localx/norm(localx,2);
+        %calculate local y
+        localy = cross(localz, localx);
+        unity = localy/norm(localy,2);
+        TM = [unitx(:), unity(:), unitz(:), origin(:); 0 0 0 1];
+        CM = [Xe, ones(size(Xe,1),1)];
+        Xe2D = TM \ CM';
+        Xe2D = Xe2D(1:3,:)';
+        % Measure the curvature
+        sx = max(Xe2D(:,1))-min(Xe2D(:,1));
+        sy = max(Xe2D(:,2))-min(Xe2D(:,2));
+        sz = max(Xe2D(:,3))-min(Xe2D(:,3));
+        curvature = (sz / mean([sx,sy]))*100;
+        if curvature > 10
+            warning(['excessive curvature (',num2str(curvature),') in cut elements! Increase number of elements!'])
+
+        end
+
+        % New order of polygon points
+        k = convhull(Xe2D(:,1),Xe2D(:,2));
+        k1 = k(1:end-1);
+    end

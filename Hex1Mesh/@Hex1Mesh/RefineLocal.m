@@ -7,14 +7,14 @@ end
 %% Refine Hex Mesh Locally
 % nodes = T.Connectivity;
 % X = T.X;
-xnod = T.xnod;
-ynod = T.ynod;
-znod = T.znod;
+xnod = T.XC;
+ynod = T.YC;
+znod = T.ZC;
 % Number of nodes, keeps track of the latest node number
 nmax = length(xnod);
 
 nodes = T.Connectivity;
-X = T.X;
+X = T.Points;
 
 % Loop over all elements that are about to be refined
 % For every element we will get 8 subelements
@@ -46,9 +46,9 @@ for iel = ele
     % Notice that we're creating 19 points regardless if these points exists
     % in neighboring elements. We'll deal with that later.
     XN = zeros(19,3);   % 19 New points
-    XN(XNeind,:) = (T.X(edges(eind,1),:)+T.X(edges(eind,2),:))/2;
+    XN(XNeind,:) = (T.Points(edges(eind,1),:)+T.Points(edges(eind,2),:))/2;
     XN(XNMind,:) = [xm,ym,zm];
-    XN(XNfind,:)=(T.X(faces(faceind,1),:)+T.X(faces(faceind,2),:)+T.X(faces(faceind,3),:)+T.X(faces(faceind,4),:))/4;
+    XN(XNfind,:)=(T.Points(faces(faceind,1),:)+T.Points(faces(faceind,2),:)+T.Points(faces(faceind,3),:)+T.Points(faces(faceind,4),:))/4;
     
     %Local node numbering same as for mother elements
     locnodes = [1  2  5  4  10 13 14 11;...
@@ -188,13 +188,13 @@ for iel = 1:T.nele
     loe = upe +1;
 end
 T.Connectivity = nodes;
-T.X = X;
-T.xnod = X(:,1);
-T.ynod = X(:,2);
-T.znod = X(:,3);
+T.Points = X;
+T.XC = X(:,1);
+T.YC = X(:,2);
+T.ZC = X(:,3);
 
 T.Faces = Q;
-T.nnod = length(T.xnod);
+T.nnod = length(T.XC);
 T.edges = edges1;
 
 

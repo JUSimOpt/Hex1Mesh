@@ -94,15 +94,9 @@ function RequiredFileMissing(filename, RemoteDestination)
     %If we're going to download a whole bunch of files, it is better to set
     % RequiredFilesDir to be a global and not have to ask the user to
     % specify a destination folder for every file...
-    GetABunchOfFiles = 1;
+    global RequiredFilesDir
     
-    if GetABunchOfFiles
-        global RequiredFilesDir
-    else
-        RequiredFilesDir = [];
-    end  
     
-    warning([filename,' is missing!'])
     disp([filename,' is missing!'])
     disp(['Trying to download ',filename,' from ',RemoteDestination])
     
@@ -138,6 +132,34 @@ function RequiredFileMissing(filename, RemoteDestination)
 
     
 end
+
+
+function rv = isenabled(mode, varargin)
+    %   ISENABLED  Checks if mode exists in the cell-array varargin.
+    %
+    %   isenabled(mode,varargin{:}) return true or false.
+    %   example:
+    %
+    %          varargin = {'Viz', 'ElementNumber', 'debug', [20,20]};
+    %          isenabled('debug',varargin)
+    %          ans =
+    %               1
+    %
+    %   Author: Mirza Cenanovic (mirza.cenanovic@jth.hj.se)
+    %   Date: 2013-05-02
+    if nargin < 1
+        error('No arguments')
+    end
+    varargin = varargin{:};
+
+    ind = find(strcmpi(varargin,mode), 1);
+    if ~isempty(ind)
+        rv = 1;
+    else
+        rv = 0;
+    end
+end
+
 
 
 

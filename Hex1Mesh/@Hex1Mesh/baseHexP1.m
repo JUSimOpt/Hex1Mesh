@@ -8,8 +8,9 @@ function [fi, fix, fiy, fiz, vol] = baseHexP1(T,iel,X)
 % X is a set of coordinates at which to evaluate the basefunctions.
 
 iv = T.Connectivity(iel,:);
-I = [1     2     4     3     5     8     6     7];
-xc = T.XC(iv(I)); yc = T.YC(iv(I)); zc = T.ZC(iv(I));
+% I = [1     2     4     3     5     8     6     7];
+% xc = T.XC(iv(I)); yc = T.YC(iv(I)); zc = T.ZC(iv(I));
+xc = T.XC(iv); yc = T.YC(iv); zc = T.ZC(iv);
 
 
 A = [1, xc(1),yc(1),zc(1),xc(1)*yc(1),yc(1)*zc(1),zc(1)*xc(1),xc(1)*yc(1)*zc(1);...
@@ -34,7 +35,7 @@ fi = fim'*[o1;x;y;z;x.*y;y.*z;z.*x;x.*y.*z];
 
 vol = (xc(3)-xc(1))*(yc(2)-yc(1))*(zc(5)-zc(1));
 
-fix = fim'*[z1;o1;z1;z1;y;z1;z1;y.*z];
+fix = fim'*[z1;o1;z1;z1;y;z1;z;y.*z];
 fiy = fim'*[z1;z1;o1;z1;x;z;z1;x.*z];
 fiz = fim'*[z1;z1;z1;o1;z1;y;x;x.*y];
 

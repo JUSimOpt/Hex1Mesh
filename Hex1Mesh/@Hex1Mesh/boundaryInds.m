@@ -7,9 +7,9 @@ if nargin < 2
     error('Not enough input')
 end
 
-if ~isempty(T.SurfaceP2Info.CutElements)
+if ~isempty(T.SurfaceP2Info)
     SurfEle = T.SurfaceP2Info.CutElements;
-elseif ~isempty(T.SurfaceP1Info.CutElements)
+elseif ~isempty(T.SurfaceP1Info)
     SurfEle = T.SurfaceP1Info.CutElements;
 else
     error('No surface exists!')
@@ -33,6 +33,8 @@ yc = T.YC;
 zc = T.ZC;
 nodes = T.Connectivity;
 
+
+
 for i = 1:nB
     if length(vals{i}) > 1
         error('Content of value must be scalar')
@@ -52,6 +54,8 @@ for i = 1:nB
     end
     
 end
+
+
 
 BoundEle = SurfEle(ismember(SurfEle,Bele));
 Se = unique(nodes(BoundEle,:));

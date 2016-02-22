@@ -9,7 +9,7 @@ y0 = -1;
 y1 = 1;
 z0 = -1;
 z1 = 1;
-ne = 20;
+ne = 2;
 nxe = ne;nye = ne;nze = ne;
 
 disp('creating mesh...')
@@ -17,8 +17,10 @@ tic
 H = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
 toc
 
-% hv = H.vizMesh('ElementNumbers','NodeNumbers');
-
+hv = H.vizMesh('ElementNumbers','NodeNumbers');
+H.RefineLocal([1,8])
+hv = H.vizMesh('ElementNumbers','NodeNumbers');
+return
 N1 = H.Neighbors('Structured');
 
 
