@@ -1,40 +1,42 @@
 function [surfh,T] = CutP1(T, phi, level)
-
+    
+% CutP1 computes the intersection between the descrete surface and the
+% predefined P1 element domain. 
+% Input: phi
+    
+    %% Initial renaming
     nodes = T.Connectivity;
     xnod = T.XC;
     ynod = T.YC;
     znod = T.ZC;
     
-    
+    %% Extract cut elements by defined surface function
     SurfEle = find(sum(phi(nodes)>0,2) > 0 & sum(phi(nodes)>0,2)< 8);
+    nsurfEle = length(SurfEle);             % Number of cutElements
 
-
-    nsurfEle = length(SurfEle);
-
-    % preallocate space for coords
-    % Maximum size is two triangles per HEX
-    % Set all to nan rather than zero to be able to find empty elements later
-    surfX = ones(nsurfEle*2,3)*nan;
-    surfh(nsurfEle*2).iel = [];
-    nTriEle = 1;% number of triangles found
+    %% Preallocate space for coordinates
+    % note: Maximum size is two triangles per HEX
+    % note: Set all to NaN to be able to find empty elements later
+    surfX = ones(nsurfEle*2,3)*NaN;         
+    surfh(nsurfEle*2).iel = [];             % Allocating 
+    nTriEle = 1;                            % Number of triangles found
 
     for iel = SurfEle'
         %% Compute cut points
         iv = nodes(iel,:);
 %         % Viz element
-%         xfigure(1); hold on; axis equal;
-%         ele = iel;
-%         fele = [6*ele-5;6*ele-4;6*ele-3;6*ele-2;6*ele-1;6*ele-0;];
-%         patch(T.XC(T.Faces(fele(:),:)'),T.YC(T.Faces(fele(:),:)'),T.ZC(T.Faces(fele(:),:)'),'w','FaceColor','none');
+        xfigure(1); hold on; axis equal;
+        ele = iel;
+        fele = [6*ele-5;6*ele-4;6*ele-3;6*ele-2;6*ele-1;6*ele-0;];
+        patch(T.XC(T.Faces(fele(:),:)'),T.YC(T.Faces(fele(:),:)'),T.ZC(T.Faces(fele(:),:)'),'w','FaceColor','none');
         
         edges = T.Element(iel).edges;
         %% Viz edges
-%         ed = unique(edges);
-%         for j = 1:8
-%             text(xnod(ed(j)),ynod(ed(j)),znod(ed(j)),num2str(ed(j)),'BackgroundColor','w')
-%         end
+        ed = unique(edges);
+        for j = 1:8
+            text(xnod(ed(j)),ynod(ed(j)),znod(ed(j)),num2str(ed(j)),'BackgroundColor','w')
+        end
         
-
         %% Loop over all edges
         P = NaN(12,3);
         normal = P;
@@ -148,16 +150,19 @@ end
         end
 %         patch(Xe(ti,1),Xe(ti,2),Xe(ti,3),color,'EdgeColor','none')
 %         quiver3(mean(Xe(ti,1)),mean(Xe(ti,2)),mean(Xe(ti,3)),n(1),n(2),n(3),0.1,'Color','b')
-
+        
+        TX = Xe(ti,:);
+        area = norm(cross(TX(2,:)-TX(1,:),TX(3,:)-TX(1,:)))/2;
         % Add to surfh
         
         surfh(nTriEle+itri-1).iel  = iel;
-        surfh(nTriEle+itri-1).Xe = Xe(ti,:);
-        surfh(nTriEle+itri-1).xp = Xe(ti,1);
-        surfh(nTriEle+itri-1).yp = Xe(ti,2);
-        surfh(nTriEle+itri-1).zp = Xe(ti,3);
-        surfh(nTriEle+itri-1).faceNormal = n;
+        surfh(nTriEle+itri-1).Xe = TX;
+        surfh(nTriEle+itri-1).xp = TX(:,1);
+        surfh(nTriEle+itri-1).yp = TX(:,2);
+        surfh(nTriEle+itri-1).zp = TX(:,3);
+        surfh(nTriEle+itri-1).FaceNormal = n;
         surfh(nTriEle+itri-1).ElementNormal = normal;
+        surfh(nTriEle+itri-1).Area = area;
 
         % Assembly
         lo = (nTriEle+itri-1)*3-2;
