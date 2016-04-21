@@ -2,7 +2,8 @@ function h = vizMesh(T,varargin)
 %vizMesh Visualize the mesh in a figure
 %
 %   h = vizMesh()
-%   h = vizMesh(ele,figNumber,properties)
+%   h = vizMesh(figNumber)
+%   h = vizMesh(figNumber,ele,properties)
 %   ele is a list of elements to display
 %   h contains visualization properties
 %   figNumber sets the figure number
@@ -19,34 +20,39 @@ function h = vizMesh(T,varargin)
 %   vizMesh(T, ... )
 %   T is the Hex1Mesh class
 
-ele = 1:size(T.Connectivity,1);
-if nargin > 1
-    if isa(varargin{1},'double')
-        ele = varargin{1};
-    end
-end
+
 fn = NaN;
-if nargin > 2
+if nargin > 1
     if isa(varargin{1},'double')
         fn = varargin{2};
     end
 end
-if isnan(fn)
-    if exist('xfigure','file') == 2
-        h.fig = xfigure;
+ele = 1:size(T.Connectivity,1);
+if nargin > 2
+    if isa(varargin{1},'double')
+        ele = varargin{1};
+    end
+end
+if ~ishold 
+    if isnan(fn)
+        if exist('xfigure','file') == 2
+            h.fig = xfigure;
+        else
+            RequiredFileMissing('xfigure', 'https://raw.githubusercontent.com/cenmir/xfigure/master/xfigure.m')
+            RequiredFileMissing('xfigure_KPF', 'https://raw.githubusercontent.com/cenmir/xfigure/master/xfigure_KPF.m')
+            h.fig = xfigure;
+        end
     else
-        RequiredFileMissing('xfigure', 'https://raw.githubusercontent.com/cenmir/xfigure/master/xfigure.m')
-        RequiredFileMissing('xfigure_KPF', 'https://raw.githubusercontent.com/cenmir/xfigure/master/xfigure_KPF.m')
-        h.fig = xfigure;
+        if exist('xfigure','file') == 2
+            h.fig = xfigure(fn);
+        else
+            RequiredFileMissing('xfigure', 'https://raw.githubusercontent.com/cenmir/xfigure/master/xfigure.m')
+            RequiredFileMissing('xfigure_KPF', 'https://raw.githubusercontent.com/cenmir/xfigure/master/xfigure_KPF.m')
+            h.fig = xfigure(fn);
+        end
     end
 else
-    if exist('xfigure','file') == 2
-        h.fig = xfigure(fn);
-    else
-        RequiredFileMissing('xfigure', 'https://raw.githubusercontent.com/cenmir/xfigure/master/xfigure.m')
-        RequiredFileMissing('xfigure_KPF', 'https://raw.githubusercontent.com/cenmir/xfigure/master/xfigure_KPF.m')
-        h.fig = xfigure(fn);
-    end
+    h.fig = gcf;
 end
 
 ele = ele(:);
