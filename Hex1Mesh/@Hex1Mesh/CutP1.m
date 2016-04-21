@@ -2,7 +2,10 @@ function [surfh,T] = CutP1(T, phi, level)
     
 % CutP1 computes the intersection between the descrete surface and the
 % predefined P1 element domain. 
-% Input: phi
+% Input: 
+%       T: Hexmesh object 
+%       phi: Discretize surface 
+%       level: 
     
     %% Initial renaming
     nodes = T.Connectivity;
@@ -25,17 +28,17 @@ function [surfh,T] = CutP1(T, phi, level)
         %% Compute cut points
         iv = nodes(iel,:);
 %         % Viz element
-        xfigure(1); hold on; axis equal;
-        ele = iel;
-        fele = [6*ele-5;6*ele-4;6*ele-3;6*ele-2;6*ele-1;6*ele-0;];
-        patch(T.XC(T.Faces(fele(:),:)'),T.YC(T.Faces(fele(:),:)'),T.ZC(T.Faces(fele(:),:)'),'w','FaceColor','none');
-        
+%         xfigure(1); hold on; axis equal;
+%         ele = iel;
+%         fele = [6*ele-5;6*ele-4;6*ele-3;6*ele-2;6*ele-1;6*ele-0;];
+%         patch(T.XC(T.Faces(fele(:),:)'),T.YC(T.Faces(fele(:),:)'),T.ZC(T.Faces(fele(:),:)'),'w','FaceColor','none');
+%         
         edges = T.Element(iel).edges;
-        %% Viz edges
-        ed = unique(edges);
-        for j = 1:8
-            text(xnod(ed(j)),ynod(ed(j)),znod(ed(j)),num2str(ed(j)),'BackgroundColor','w')
-        end
+%         %% Viz edges
+%         ed = unique(edges);
+%         for j = 1:8
+%             text(xnod(ed(j)),ynod(ed(j)),znod(ed(j)),num2str(ed(j)),'BackgroundColor','w')
+%         end
         
         %% Loop over all edges
         P = NaN(12,3);
