@@ -6,7 +6,7 @@ Hexahedral Mesh class. Includes background Hexahedral p1 - mesh generation, visu
 |-----------------|-------------|
 | `Connectivity`  | Hexahedra connectivity list, is an m-by-8 matrix where *m* is the number of hexahedra elements. Each element in *Connectivity* is a vertex ID. Each row of *Connectivity* contains the vertex IDs that define a hexahdral element.  |
 | `Points`        | Points, specified as a matrix whose columns are the x, y and z coordinates of the hexahedra points. The row numbers of *Points* are the vertex IDs in the *Connectivity*.|
-| `Element`      | Hexahedra struct array. Every element contains  [element specific data](###Element).
+| `Element`      | Hexahedra struct array. Every element contains  [element specific data](#Element).
 | `SurfaceP1`    | Surface struct array. Every element in *SurfaceP1* contains a surface triangle element struct.|
 | `Faces`        | Hexahedra face list, is and m-by-4 matrix where *m* is the number of total hexahedra faces in the mesh. Each row in the list contains the vertex IDs that define a face in the Hexahedral mesh. |
 
