@@ -7,6 +7,9 @@ function hv = vizP2Surf(T,varargin)
 %   EdgeColor
 %   FaceColor
 
+% BROKEN!
+% TODO: Fix
+
     if isempty(T.SurfaceP2)
         error('Surface must exist!')
     end
@@ -130,14 +133,6 @@ function mesh = showMesh(T)
     fele = [6*ele-5;6*ele-4;6*ele-3;6*ele-2;6*ele-1;6*ele-0;];
     mesh = patch(T.XC(T.Faces(fele(:),:)'),T.YC(T.Faces(fele(:),:)'),T.ZC(T.Faces(fele(:),:)'),'w','FaceColor','none');
 end
-
-
-
-
-
-
-
-
 
 
 function rv = isenabled(mode, varargin)
