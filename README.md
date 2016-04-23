@@ -1,23 +1,44 @@
 # Hex1Mesh
-Hexahedral Mesh repository. Includes generation, visualization, basefunctions, CutFEM suites, etc.
+Hexahedral Mesh class. Includes background Hexahedral p1 - mesh generation, visualization, basefunctions, CutFEM suites, etc.
+
+## Properties
+| Function Name   | Description |
+|-----------------|-------------|
+| `Connectivity`  | Hexahedra connectivity list, is an m-by-8 matrix where *m* is the number of hexahedra elements. Each element in *Connectivity* is a vertex ID. Each row of *Connectivity* contains the vertex IDs that define a hexahdral element.  |
+| `Points`        | Points, specified as a matrix whose columns are the x, y and z coordinates of the hexahedra points. The row numbers of *Points* are the vertex IDs in the *Connectivity*.|
+| `Element`      | Hexahedra struct array. Every element contains  [element specific data](###Element).
+| `SurfaceP1`    | Surface struct array. Every element in *SurfaceP1* contains a surface triangle element struct.|
+| `Faces`        | Hexahedra face list, is and m-by-4 matrix where *m* is the number of total hexahedra faces in the mesh. Each row in the list contains the vertex IDs that define a face in the Hexahedral mesh. |
+
 
 ## Functions
 **Hex1Mesh** includes the following functions:
 
-- Hex1Mesh() - The constructor, creates the Hex1Mesh object.
-- Neighbors() - Returns a m-by-4 matrix containing element indices to the neighbors.
-- vizMesh()
-- ElementVolume()
-- RefineLocal()
-- CutP1()
-- vizP1Surf()
-- TriangulateP1()
-- CutP2()
-- vizP2Surf() (includes P2 triangulation)
-- boundaryInds()
-- baseHexP1()
+| Function Name   | Description |
+|-----------------|-------------|
+| `Hex1()`        | The constructor, creates the Hex1Mesh object |
+| `Neighbors()`   | Returns a m-by-4 matrix containing element indices to the neighbours |
+| `vizMesh()`     | Creates a visualization in a figure |
+| `RefineLocal()` | Refines a specified list of elements by dividing each into 8 new elements |
+| `boundaryInds()`| Gets a list of node indices on the specified boundary
+| `CutP1()`       | Extracts a piecewise linear cut surface
+| `vizP1Surf()`   | Creates a visualization of the P1 surface in a figure
+| `TriangulateP1()`| Creates a triangulation/ topology of the extracted surface triangles
+| `CutP2()`       | Extracts a piecewise quadratic cut surface
+| `vizP2Surf()`   | Creates a visualization of the P2 surface in a figure (includes P2 triangulation)
+| `baseHexP1()`   | Basis function for the Hex1 element
 
-## Demo
+## Demo 1
+```matlab
+%Create mesh
+ne = 2;
+x0 = -1;x1 = 1;y0 = -1;y1 = 1;z0 = -1;z1 = 1;
+nxe = ne;nye = ne;nze = ne;
+H = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
+H.vizMesh('ElementNumbers','NodeNumbers');
+```
+
+## Demo 2
 ```matlab
 %Create mesh
 x0 = -1;
@@ -40,6 +61,10 @@ phi = surfaceFunction(H.XC, H.YC, H.ZC);
 H.CutP2(phi,0)
 hv = H.vizP2Surf('FaceColor','c','EdgeColor','k','nP2Ele',5); axis tight
 ```
+## Properties
+
+### Element
+Hexahedra struct array. Every element contains element specific data.
 
 ## Mesh numbering
 The mesh is numbered according to the figure below. The red and cyan colors are used to explain the refinement algorithm.
