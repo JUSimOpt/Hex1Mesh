@@ -64,6 +64,7 @@ classdef Hex1Mesh < matlab.mixin.Copyable
     methods
         function T = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze)
             
+            
             nele = nxe*nye*nze;
             if nele > 100000
                 btn = questdlg(['Warning, ',num2str(nele),' elements are about to be created. Do you wish to continue?'], ...
