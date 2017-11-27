@@ -1,11 +1,20 @@
 classdef HexP1MeshAbaqus < Hex1Mesh
-    %UNTITLED4 Summary of this class goes here
-    %   Detailed explanation goes here
+    %HexP1MeshAbaqus
+    %     8-----7
+    %    /|    /|
+    %   5-----6 |
+    %   | 4...|.3
+    %   |/    |/ 
+    %   1-----2
     
     properties
         nodes
         P
-        BC % Struct Boundary conditions
+        BC % Struct Boundary conditions %TODO: Remove
+        NodeSets % contains Node sets
+        ElementSets
+        Boundaries
+        Loads        
     end
     
     methods
