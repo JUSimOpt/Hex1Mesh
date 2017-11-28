@@ -13,7 +13,7 @@ classdef HexP1MeshAbaqus < Hex1Mesh
         BC % Struct Boundary conditions %TODO: Remove
         NodeSets % contains Node sets
         ElementSets
-        Boundaries
+        BoundarieConditions
         Loads        
     end
     
@@ -24,6 +24,9 @@ classdef HexP1MeshAbaqus < Hex1Mesh
             obj.Connectivity = obj.Connectivity(:,map);
             obj.nodes = obj.Connectivity;
             obj.P = obj.Points;
+            
+            
+            
         end
         
         function [fi, B, detJ] = BasisFunctionsParametric(obj,ielement,xi,eta,zeta)
