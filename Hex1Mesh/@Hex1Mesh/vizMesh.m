@@ -22,6 +22,7 @@ function h = vizMesh(T,varargin)
 
 
 fn = NaN;
+%
 if nargin > 1
     if isa(varargin{1},'double')
         fn = varargin{2};
@@ -33,7 +34,9 @@ if nargin > 2
         ele = varargin{1};
     end
 end
-if ~ishold 
+
+noFiguresOpen = isempty(findall(0,'type','figure'));
+if noFiguresOpen || ~ishold
     if isnan(fn)
         if exist('xfigure','file') == 2
             h.fig = xfigure;
