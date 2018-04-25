@@ -16,6 +16,9 @@ surfh = T.SurfaceP1;
 
 AllHexEle = [surfh.iel]';
 surfEle = T.SurfaceP1Info.CutElements;
+if isempty(T.Neighs)
+    N1 = T.Neighbors('Structured');
+end
 N1 = T.Neighs;
 
 nTri = size(surfX,1)/3;
@@ -199,3 +202,4 @@ X =  X(map(:,1),:);
 %% Return
 T.SurfaceP1Triangulation = tri;
 T.SurfaceP1 = surfh;
+end
