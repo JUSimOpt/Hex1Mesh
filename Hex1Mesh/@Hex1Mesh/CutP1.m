@@ -193,14 +193,14 @@ end
         Xe2D = TM \ CM';
         Xe2D = Xe2D(1:3,:)';
         % Measure the curvature
-        sx = max(Xe2D(:,1))-min(Xe2D(:,1));
-        sy = max(Xe2D(:,2))-min(Xe2D(:,2));
-        sz = max(Xe2D(:,3))-min(Xe2D(:,3));
-        curvature = (sz / mean([sx,sy]))*100;
-        if curvature > 10
-            warning(['excessive curvature (',num2str(curvature),') in cut elements! Increase number of elements!'])
-
-        end
+%         sx = max(Xe2D(:,1))-min(Xe2D(:,1));
+%         sy = max(Xe2D(:,2))-min(Xe2D(:,2));
+%         sz = max(Xe2D(:,3))-min(Xe2D(:,3));
+%         curvature = (sz / mean([sx,sy]))*100;
+%         if curvature > 10
+%             warning(['excessive curvature (',num2str(curvature),') in cut elements! Increase number of elements!'])
+% 
+%         end
 
         % New order of polygon points
         k = convhull(Xe2D(:,1),Xe2D(:,2));
