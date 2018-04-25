@@ -2,6 +2,7 @@ clear
 close all
 clc
 
+addpath(fullfile(pwd,'Hex1Mesh'))
 
 x0 = -1;
 x1 = 1;
@@ -9,7 +10,7 @@ y0 = -1;
 y1 = 1;
 z0 = -1;
 z1 = 1;
-ne = 2;
+ne = 4;
 nxe = ne;nye = ne;nze = ne;
 
 disp('creating mesh...')
@@ -18,9 +19,9 @@ H = Hex1Mesh(x0,x1,nxe,y0,y1,nye,z0,z1,nze);
 toc
 
 hv = H.vizMesh('ElementNumbers','NodeNumbers');
-H.RefineLocal([1,8])
-hv = H.vizMesh('ElementNumbers','NodeNumbers');
-return
+% H.RefineLocal([1,8])
+% hv = H.vizMesh('ElementNumbers','NodeNumbers');
+% return
 N1 = H.Neighbors('Structured');
 
 
@@ -40,16 +41,18 @@ phi = surfaceFunction(xnod, ynod);
 
 
 %% CutP1 Surface
-% disp('CutP1')
-% tic
-% H.CutP1(phi);
-% toc
+disp('CutP1')
+tic
+[surfh,T] = H.CutP1(phi,0);
+toc
+
+T.vizP1Surf
 
 %% Triangulate P1
-% disp('Triangulate P1')
-% tic
-% [tri,surfX] = H.TriangulateP1;
-% toc
+disp('Triangulate P1')
+tic
+[tri,surfX] = H.TriangulateP1;
+toc
 % h2 = H.vizP1Surf()
 
 %% CutP2 Surface
